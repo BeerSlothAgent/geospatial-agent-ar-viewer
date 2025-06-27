@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Database, Wifi, WifiOff, RefreshCw, CircleAlert as AlertCircle, CircleCheck as CheckCircle } from 'lucide-react-native';
+import { Database, Wifi, WifiOff, RefreshCw, CircleAlert as AlertCircle, CircleCheck as CheckCircle, Settings } from 'lucide-react-native';
 import { DatabaseState } from '@/hooks/useDatabase';
+import { isSupabaseConfigured } from '@/lib/supabase';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 interface DatabaseStatusProps {
@@ -36,6 +37,7 @@ export default function DatabaseStatus({
   };
 
   const getStatusText = () => {
+    if (!isSupabaseConfigured) return 'Not Configured';
     if (isLoading) return 'Connecting...';
     if (error) return 'Connection Error';
     if (isConnected) return 'Connected';
@@ -43,6 +45,7 @@ export default function DatabaseStatus({
   };
 
   const getStatusColor = () => {
+    if (!isSupabaseConfigured) return '#ff9500';
     if (error) return '#ff6b35';
     if (isConnected) return '#00ff88';
     return '#666';
@@ -91,6 +94,25 @@ export default function DatabaseStatus({
         </View>
       </View>
 
+      {/* Configuration Status */}
+      {!isSupabaseConfigured && (
+        <View style={styles.configSection}>
+          <View style={styles.configHeader}>
+            <Settings size={16} color="#ff9500" strokeWidth={2} />
+            <Text style={styles.configTitle}>Configuration Required</Text>
+          </View>
+          <Text style={styles.configMessage}>
+            Supabase environment variables are not configured. Please set your Supabase URL and API key in the .env file.
+          </Text>
+          <View style={styles.configSteps}>
+            <Text style={styles.configStep}>1. Open your .env file</Text>
+            <Text style={styles.configStep}>2. Set EXPO_PUBLIC_SUPABASE_URL</Text>
+            <Text style={styles.configStep}>3. Set EXPO_PUBLIC_SUPABASE_ANON_KEY</Text>
+            <Text style={styles.configStep}>4. Restart the development server</Text>
+          </View>
+        </View>
+      )}
+
       {/* Connection Details */}
       <View style={styles.detailsSection}>
         <View style={styles.detailRow}>
@@ -118,7 +140,9 @@ export default function DatabaseStatus({
 
         <View style={styles.detailRow}>
           <Text style={styles.detailLabel}>Service</Text>
-          <Text style={styles.detailValue}>Supabase</Text>
+          <Text style={styles.detailValue}>
+            {isSupabaseConfigured ? 'Supabase' : 'Not Configured'}
+          </Text>
         </View>
       </View>
 
@@ -164,7 +188,10 @@ export default function DatabaseStatus({
       {/* Info */}
       <View style={styles.infoSection}>
         <Text style={styles.infoText}>
-          Database connection is required to retrieve AR objects from the deployed_objects table.
+          {isSupabaseConfigured 
+            ? 'Database connection is required to retrieve AR objects from the deployed_objects table.'
+            : 'Configure Supabase credentials to connect to your database and load real AR objects.'
+          }
         </Text>
       </View>
     </View>
@@ -245,6 +272,39 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     fontWeight: '500',
+  },
+
+  // Configuration section
+  configSection: {
+    backgroundColor: '#ff950020',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  configHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  configTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ff9500',
+  },
+  configMessage: {
+    fontSize: 14,
+    color: '#ff9500',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  configSteps: {
+    gap: 4,
+  },
+  configStep: {
+    fontSize: 12,
+    color: '#ff9500',
+    opacity: 0.8,
   },
   
   // Details section

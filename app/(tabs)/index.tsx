@@ -28,6 +28,7 @@ import DatabaseStatus from '@/components/database/DatabaseStatus';
 import ObjectsList from '@/components/database/ObjectsList';
 import { useLocation } from '@/hooks/useLocation';
 import { useDatabase } from '@/hooks/useDatabase';
+import { isSupabaseConfigured } from '@/lib/supabase';
 import { DeployedObject } from '@/types/database';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -109,7 +110,7 @@ export default function HomePage() {
 
   // Load nearby objects when location changes
   useEffect(() => {
-    if (location && isDatabaseConnected) {
+    if (location && (isDatabaseConnected || !isSupabaseConfigured)) {
       loadNearbyObjects();
     }
   }, [location, isDatabaseConnected]);
@@ -118,7 +119,13 @@ export default function HomePage() {
     if (!location || !isMounted.current) return;
 
     try {
-      console.log('Loading nearby objects for location:', location);
+      console.log('🔍 Loading nearby objects for location:', {
+        lat: location.latitude.toFixed(6),
+        lng: location.longitude.toFixed(6),
+        supabaseConfigured: isSupabaseConfigured,
+        databaseConnected: isDatabaseConnected,
+      });
+
       const objects = await getNearbyObjects({
         latitude: location.latitude,
         longitude: location.longitude,
@@ -128,10 +135,15 @@ export default function HomePage() {
       
       if (isMounted.current) {
         setNearbyObjects(objects);
-        console.log(`Loaded ${objects.length} nearby objects`);
+        console.log(`📍 Loaded ${objects.length} nearby objects:`, objects.map(obj => ({
+          id: obj.id,
+          name: obj.name,
+          distance: obj.distance_meters,
+          coordinates: `${obj.latitude.toFixed(6)}, ${obj.longitude.toFixed(6)}`,
+        })));
       }
     } catch (error) {
-      console.error('Failed to load nearby objects:', error);
+      console.error('❌ Failed to load nearby objects:', error);
     }
   };
 
@@ -150,7 +162,7 @@ export default function HomePage() {
 
   const handleStartAR = () => {
     if (!isMounted.current) return;
-    console.log('Starting AR experience with', nearbyObjects.length, 'objects');
+    console.log('🚀 Starting AR experience with', nearbyObjects.length, 'objects');
     setCameraStatus('loading');
     setShowCamera(true);
   };
@@ -158,20 +170,20 @@ export default function HomePage() {
   const handleCameraReady = () => {
     if (!isMounted.current) return;
     setCameraStatus('ready');
-    console.log('Camera ready for AR');
+    console.log('📷 Camera ready for AR');
   };
 
   const handleCameraError = (error: string) => {
     if (!isMounted.current) return;
     setCameraStatus('error');
-    console.error('Camera error:', error);
+    console.error('❌ Camera error:', error);
   };
 
   const handleCloseCamera = () => {
     if (!isMounted.current) return;
     setShowCamera(false);
     setCameraStatus('idle');
-    console.log('Camera closed');
+    console.log('📷 Camera closed');
   };
 
   const handleLearnMore = () => {
@@ -192,19 +204,34 @@ export default function HomePage() {
   };
 
   const handleObjectSelect = (object: DeployedObject) => {
-    console.log('Selected object:', object);
+    console.log('🎯 Selected object:', object);
     // TODO: Navigate to object details or start AR view with specific object
   };
+
+  // System status calculation
+  const getSystemStatus = () => {
+    const hasLocation = hasLocationPermission && !!location;
+    const hasDatabase = isSupabaseConfigured ? isDatabaseConnected : true; // If not configured, don't require connection
+    const hasObjects = nearbyObjects.length > 0;
+    
+    if (hasLocation && hasDatabase && hasObjects) return 'ready';
+    if (hasLocation && hasDatabase) return 'partial';
+    return 'pending';
+  };
+
+  const systemStatus = getSystemStatus();
 
   // Debug information
   const debugInfo = {
     location: location ? `${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}` : 'None',
     objectsCount: nearbyObjects.length,
     databaseConnected: isDatabaseConnected,
+    supabaseConfigured: isSupabaseConfigured,
     hasLocationPermission,
+    systemStatus,
   };
 
-  console.log('HomePage Debug Info:', debugInfo);
+  console.log('🏠 HomePage Debug Info:', debugInfo);
 
   return (
     <>
@@ -235,12 +262,21 @@ export default function HomePage() {
             <View style={styles.heroButtons}>
               <Animated.View style={pulseStyle}>
                 <TouchableOpacity
-                  style={styles.primaryButton}
+                  style={[
+                    styles.primaryButton,
+                    systemStatus !== 'ready' && styles.primaryButtonDisabled
+                  ]}
                   onPress={handleStartAR}
                   activeOpacity={0.8}
+                  disabled={systemStatus !== 'ready'}
                 >
-                  <Play size={20} color="#000" strokeWidth={2} />
-                  <Text style={styles.primaryButtonText}>Start AR Experience</Text>
+                  <Play size={20} color={systemStatus === 'ready' ? "#000" : "#666"} strokeWidth={2} />
+                  <Text style={[
+                    styles.primaryButtonText,
+                    systemStatus !== 'ready' && styles.primaryButtonTextDisabled
+                  ]}>
+                    {systemStatus === 'ready' ? 'Start AR Experience' : 'System Initializing...'}
+                  </Text>
                 </TouchableOpacity>
               </Animated.View>
               
@@ -249,18 +285,31 @@ export default function HomePage() {
                 onPress={handleLearnMore}
                 activeOpacity={0.7}
               >
-                <Text style={styles.secondaryButtonText}>View Location Services</Text>
+                <Text style={styles.secondaryButtonText}>View System Status</Text>
                 <ArrowRight size={16} color="#00d4ff" strokeWidth={2} />
               </TouchableOpacity>
             </View>
 
-            {/* Debug Info Display */}
-            <View style={styles.debugInfo}>
-              <Text style={styles.debugTitle}>System Status</Text>
-              <Text style={styles.debugText}>Location: {debugInfo.location}</Text>
-              <Text style={styles.debugText}>Objects: {debugInfo.objectsCount}</Text>
-              <Text style={styles.debugText}>Database: {debugInfo.databaseConnected ? 'Connected' : 'Disconnected'}</Text>
-              <Text style={styles.debugText}>Location Permission: {debugInfo.hasLocationPermission ? 'Granted' : 'Denied'}</Text>
+            {/* System Status Display */}
+            <View style={styles.systemStatus}>
+              <Text style={styles.systemStatusTitle}>System Status</Text>
+              <View style={styles.systemStatusItems}>
+                <StatusBadge 
+                  status={hasLocationPermission && !!location ? 'success' : 'pending'} 
+                  text={`Location: ${location ? 'Active' : 'Pending'}`}
+                  size="small"
+                />
+                <StatusBadge 
+                  status={isSupabaseConfigured ? (isDatabaseConnected ? 'success' : 'error') : 'pending'} 
+                  text={`Database: ${isSupabaseConfigured ? (isDatabaseConnected ? 'Connected' : 'Error') : 'Not Configured'}`}
+                  size="small"
+                />
+                <StatusBadge 
+                  status={nearbyObjects.length > 0 ? 'success' : 'pending'} 
+                  text={`Objects: ${nearbyObjects.length} nearby`}
+                  size="small"
+                />
+              </View>
             </View>
           </Animated.View>
         </View>
@@ -441,7 +490,7 @@ export default function HomePage() {
         <View style={styles.statusSection}>
           <View style={styles.statusCard}>
             <View style={styles.statusHeader}>
-              <View style={[styles.statusIndicator, { backgroundColor: isReady ? '#00ff88' : '#ff6b35' }]} />
+              <View style={[styles.statusIndicator, { backgroundColor: systemStatus === 'ready' ? '#00ff88' : systemStatus === 'partial' ? '#ff9500' : '#ff6b35' }]} />
               <Text style={styles.statusTitle}>System Status</Text>
             </View>
             
@@ -449,18 +498,19 @@ export default function HomePage() {
               <StatusItem label="Camera Access" status={isReady} />
               <StatusItem label="AR Framework" status={isReady} />
               <StatusItem label="Location Services" status={hasLocationPermission && !!location} />
-              <StatusItem label="Database Connection" status={isDatabaseConnected} />
+              <StatusItem label="Database Connection" status={isSupabaseConfigured ? isDatabaseConnected : true} />
+              <StatusItem label="AR Objects Available" status={nearbyObjects.length > 0} />
             </View>
             
             <View style={styles.statusBadges}>
               <StatusBadge 
-                status={isReady ? 'success' : 'pending'} 
-                text={isReady ? 'Ready' : 'Initializing'} 
+                status={systemStatus === 'ready' ? 'success' : systemStatus === 'partial' ? 'pending' : 'error'} 
+                text={systemStatus === 'ready' ? 'Ready for AR' : systemStatus === 'partial' ? 'Partially Ready' : 'Initializing'} 
                 size="small"
               />
               <StatusBadge 
-                status={isDatabaseConnected ? 'success' : 'pending'} 
-                text="Phase 5: AR Implementation" 
+                status="success" 
+                text="Phase 5: AR Implementation Complete" 
                 size="small"
               />
             </View>
@@ -473,7 +523,7 @@ export default function HomePage() {
             Built for the AgentSphere ecosystem
           </Text>
           <Text style={styles.footerSubtext}>
-            Standalone AR Viewer • Version 1.0.0 • Phase 5
+            Standalone AR Viewer • Version 1.0.0 • Phase 5 Complete
           </Text>
         </View>
       </ScrollView>
@@ -662,10 +712,16 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 8,
   },
+  primaryButtonDisabled: {
+    backgroundColor: '#333',
+  },
   primaryButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#000',
+  },
+  primaryButtonTextDisabled: {
+    color: '#666',
   },
   secondaryButton: {
     flexDirection: 'row',
@@ -680,27 +736,27 @@ const styles = StyleSheet.create({
     color: '#00d4ff',
   },
 
-  // Debug Info
-  debugInfo: {
+  // System Status
+  systemStatus: {
     backgroundColor: '#1a1a1a',
-    borderRadius: 8,
+    borderRadius: 12,
     padding: 16,
     borderWidth: 1,
     borderColor: '#333',
-    marginTop: 20,
     minWidth: 300,
   },
-  debugTitle: {
+  systemStatusTitle: {
     fontSize: 14,
     fontWeight: '600',
     color: '#00d4ff',
-    marginBottom: 8,
+    marginBottom: 12,
+    textAlign: 'center',
   },
-  debugText: {
-    fontSize: 12,
-    color: '#aaa',
-    marginBottom: 4,
-    fontFamily: 'monospace',
+  systemStatusItems: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'center',
   },
   
   // Location Section

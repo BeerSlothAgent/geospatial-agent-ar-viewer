@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { testConnection, getNearbyObjectsFromSupabase } from '@/lib/supabase';
+import { testConnection, getNearbyObjectsFromSupabase, isSupabaseConfigured } from '@/lib/supabase';
 import { DeployedObject, NearbyObjectsQuery, DatabaseError } from '@/types/database';
 
 export interface DatabaseState {
@@ -42,7 +42,9 @@ export function useDatabase(): UseDatabaseReturn {
           lastSync: Date.now(),
           error: connected ? null : {
             code: 'CONNECTION_FAILED',
-            message: 'Unable to connect to Supabase database. Check environment variables.',
+            message: isSupabaseConfigured 
+              ? 'Unable to connect to Supabase database. Check your credentials and network connection.'
+              : 'Supabase environment variables not configured. Please set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in your .env file.',
           },
         }));
       }
@@ -69,6 +71,8 @@ export function useDatabase(): UseDatabaseReturn {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
       }
 
+      console.log('Fetching nearby objects:', query);
+
       // Try to get real data from Supabase first
       const supabaseData = await getNearbyObjectsFromSupabase(
         query.latitude,
@@ -84,29 +88,29 @@ export function useDatabase(): UseDatabaseReturn {
           id: obj.id,
           name: obj.name || 'Unnamed Object',
           description: obj.description || '',
-          latitude: obj.latitude,
-          longitude: obj.longitude,
-          altitude: obj.altitude || 0,
+          latitude: parseFloat(obj.latitude),
+          longitude: parseFloat(obj.longitude),
+          altitude: parseFloat(obj.altitude || 0),
           model_url: obj.model_url || 'https://threejs.org/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf',
           model_type: obj.model_type || 'gltf',
-          scale_x: obj.scale_x || 1.0,
-          scale_y: obj.scale_y || 1.0,
-          scale_z: obj.scale_z || 1.0,
-          rotation_x: obj.rotation_x || 0,
-          rotation_y: obj.rotation_y || 0,
-          rotation_z: obj.rotation_z || 0,
+          scale_x: parseFloat(obj.scale_x || 1.0),
+          scale_y: parseFloat(obj.scale_y || 1.0),
+          scale_z: parseFloat(obj.scale_z || 1.0),
+          rotation_x: parseFloat(obj.rotation_x || 0),
+          rotation_y: parseFloat(obj.rotation_y || 0),
+          rotation_z: parseFloat(obj.rotation_z || 0),
           is_active: obj.is_active !== false,
-          visibility_radius: obj.visibility_radius || 100,
+          visibility_radius: parseInt(obj.visibility_radius || 100),
           created_at: obj.created_at || new Date().toISOString(),
           updated_at: obj.updated_at || new Date().toISOString(),
-          distance_meters: obj.distance_meters || 0,
+          distance_meters: parseFloat(obj.distance_meters || 0),
         }));
         
-        console.log(`Loaded ${objects.length} objects from Supabase`);
+        console.log(`✅ Loaded ${objects.length} objects from Supabase:`, objects);
       } else {
         // Fall back to mock data for demo purposes
         objects = generateMockObjects(query);
-        console.log(`Using ${objects.length} mock objects (Supabase not available)`);
+        console.log(`⚠️ Using ${objects.length} mock objects (Supabase not available or no data)`);
       }
       
       if (isMounted.current) {
@@ -125,6 +129,8 @@ export function useDatabase(): UseDatabaseReturn {
         details: error,
       };
 
+      console.error('Database query error:', dbError);
+
       if (isMounted.current) {
         setState(prev => ({
           ...prev,
@@ -134,7 +140,9 @@ export function useDatabase(): UseDatabaseReturn {
       }
 
       // Return mock data as fallback
-      return generateMockObjects(query);
+      const fallbackObjects = generateMockObjects(query);
+      console.log(`🔄 Returning ${fallbackObjects.length} fallback mock objects due to error`);
+      return fallbackObjects;
     }
   }, []);
 
@@ -208,9 +216,9 @@ function generateMockObjects(query: NearbyObjectsQuery): DeployedObject[] {
   
   const mockObjects: DeployedObject[] = [
     {
-      id: '1',
-      name: 'Welcome Cube',
-      description: 'A simple welcome cube for AR testing',
+      id: 'mock-1',
+      name: 'Demo AR Cube',
+      description: 'A demonstration AR cube for testing the AR viewer',
       latitude: latitude + 0.0001,
       longitude: longitude + 0.0001,
       altitude: 10,
@@ -229,7 +237,7 @@ function generateMockObjects(query: NearbyObjectsQuery): DeployedObject[] {
       distance_meters: 15.2,
     },
     {
-      id: '2',
+      id: 'mock-2',
       name: 'Info Sphere',
       description: 'Information sphere with AR content',
       latitude: latitude - 0.0001,
@@ -250,9 +258,9 @@ function generateMockObjects(query: NearbyObjectsQuery): DeployedObject[] {
       distance_meters: 28.7,
     },
     {
-      id: '3',
-      name: 'Demo Object',
-      description: 'Demonstration AR object for testing',
+      id: 'mock-3',
+      name: 'Test Object',
+      description: 'Test AR object for demonstration',
       latitude: latitude + 0.0002,
       longitude: longitude - 0.0001,
       altitude: 5,
