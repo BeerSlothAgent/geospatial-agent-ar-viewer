@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { testConnection, getNearbyObjectsFromSupabase, isSupabaseConfigured } from '@/lib/supabase';
+import { testConnection, isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { DeployedObject, NearbyObjectsQuery, DatabaseError } from '@/types/database';
 
 export interface DatabaseState {
@@ -64,54 +64,17 @@ export function useDatabase(): UseDatabaseReturn {
     }
   }, []);
 
-  // Get nearby objects based on user location
+  // Get nearby objects using ONLY direct queries (no RPC)
   const getNearbyObjects = useCallback(async (query: NearbyObjectsQuery): Promise<DeployedObject[]> => {
     try {
       if (isMounted.current) {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
       }
 
-      console.log('Fetching nearby objects:', query);
+      console.log('🔄 Fetching objects using direct query (no RPC)...', query);
 
-      // Try to get real data from Supabase first
-      const supabaseData = await getNearbyObjectsFromSupabase(
-        query.latitude,
-        query.longitude,
-        query.radius_meters || 100
-      );
-
-      let objects: DeployedObject[] = [];
-
-      if (supabaseData && supabaseData.length > 0) {
-        // Use real Supabase data
-        objects = supabaseData.map((obj: any) => ({
-          id: obj.id,
-          name: obj.name || 'Unnamed Object',
-          description: obj.description || '',
-          latitude: parseFloat(obj.latitude),
-          longitude: parseFloat(obj.longitude),
-          altitude: parseFloat(obj.altitude || 0),
-          model_url: obj.model_url || getReliableModelUrl(obj.model_type || obj.object_type || 'sphere'),
-          model_type: obj.model_type || obj.object_type || 'sphere',
-          scale_x: parseFloat(obj.scale_x || 1.0),
-          scale_y: parseFloat(obj.scale_y || 1.0),
-          scale_z: parseFloat(obj.scale_z || 1.0),
-          rotation_x: parseFloat(obj.rotation_x || 0),
-          rotation_y: parseFloat(obj.rotation_y || 0),
-          rotation_z: parseFloat(obj.rotation_z || 0),
-          is_active: obj.is_active !== false,
-          visibility_radius: parseInt(obj.visibility_radius || 100),
-          created_at: obj.created_at || new Date().toISOString(),
-          updated_at: obj.updated_at || obj.created_at || new Date().toISOString(),
-          distance_meters: parseFloat(obj.distance_meters || 0),
-        }));
-        
-        console.log(`✅ Loaded ${objects.length} objects from Supabase:`, objects);
-      } else {
-        // Fall back to mock data for demo purposes
-        objects = generateMockObjects(query);
-        console.log(`⚠️ Using ${objects.length} mock objects (Supabase not available or no data)`);
-      }
+      // COMPLETELY BYPASS RPC - Use direct table query only
+      const objects = await fetchObjectsDirectly(query);
       
       if (isMounted.current) {
         setState(prev => ({
@@ -153,7 +116,41 @@ export function useDatabase(): UseDatabaseReturn {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
       }
 
-      // Try Supabase first, then fall back to mock data
+      // Try direct query first
+      if (supabase && isSupabaseConfigured) {
+        const { data, error } = await supabase
+          .from('deployed_objects')
+          .select(`
+            id,
+            name,
+            description,
+            latitude,
+            longitude,
+            altitude,
+            object_type,
+            user_id,
+            created_at
+          `)
+          .eq('id', id)
+          .eq('is_active', true)
+          .single();
+
+        if (!error && data) {
+          const transformedObject = transformDatabaseObject(data);
+          
+          if (isMounted.current) {
+            setState(prev => ({
+              ...prev,
+              isLoading: false,
+              lastSync: Date.now(),
+            }));
+          }
+
+          return transformedObject;
+        }
+      }
+
+      // Fallback to mock data
       const mockObject = generateMockObjectById(id);
       
       if (isMounted.current) {
@@ -210,13 +207,121 @@ export function useDatabase(): UseDatabaseReturn {
   };
 }
 
+// Direct database query function (NO RPC)
+async function fetchObjectsDirectly(query: NearbyObjectsQuery): Promise<DeployedObject[]> {
+  const { latitude, longitude, radius_meters = 100, limit = 50 } = query;
+
+  // If Supabase is not configured, return mock data
+  if (!supabase || !isSupabaseConfigured) {
+    console.log('⚠️ Supabase not configured, using mock data');
+    return generateMockObjects(query);
+  }
+
+  try {
+    console.log('🔍 Querying database directly (no RPC)...');
+    
+    // Use direct table query with only guaranteed columns
+    const { data, error } = await supabase
+      .from('deployed_objects')
+      .select(`
+        id,
+        name,
+        description,
+        latitude,
+        longitude,
+        altitude,
+        object_type,
+        user_id,
+        created_at
+      `)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+      .limit(limit * 2); // Get more to filter by distance
+
+    if (error) {
+      console.error('❌ Direct query failed:', error);
+      throw error;
+    }
+
+    console.log('✅ Direct query successful, found:', data?.length || 0, 'total objects');
+    
+    // Process and filter data client-side
+    let processedData = (data || []).map(item => transformDatabaseObject(item));
+    
+    // Calculate distance and filter by proximity
+    processedData = processedData
+      .map(item => ({
+        ...item,
+        distance_meters: calculateDistance(
+          latitude,
+          longitude,
+          item.latitude,
+          item.longitude
+        ) * 1000 // Convert km to meters
+      }))
+      .filter(item => item.distance_meters <= radius_meters)
+      .sort((a, b) => a.distance_meters - b.distance_meters)
+      .slice(0, limit);
+    
+    console.log('📍 Found', processedData.length, 'objects within', radius_meters, 'meters');
+    
+    return processedData;
+
+  } catch (error) {
+    console.error('❌ Direct query error:', error);
+    
+    // Return mock data as fallback
+    console.log('🔄 Using mock data as fallback');
+    return generateMockObjects(query);
+  }
+}
+
+// Transform database object to include all required fields
+function transformDatabaseObject(obj: any): DeployedObject {
+  return {
+    id: obj.id,
+    name: obj.name || 'Unnamed Object',
+    description: obj.description || '',
+    latitude: parseFloat(obj.latitude),
+    longitude: parseFloat(obj.longitude),
+    altitude: parseFloat(obj.altitude || 0),
+    model_url: getReliableModelUrl(obj.object_type || 'sphere'),
+    model_type: obj.object_type || 'sphere',
+    scale_x: 1.0,
+    scale_y: 1.0,
+    scale_z: 1.0,
+    rotation_x: 0.0,
+    rotation_y: 0.0,
+    rotation_z: 0.0,
+    is_active: true,
+    visibility_radius: 50,
+    created_at: obj.created_at || new Date().toISOString(),
+    updated_at: obj.created_at || new Date().toISOString(), // Use created_at as fallback
+    distance_meters: 0, // Will be calculated
+  };
+}
+
+// Calculate distance between two coordinates (Haversine formula)
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
 // Get reliable model URLs that actually exist
 function getReliableModelUrl(modelType: string): string {
   // Use simple geometric shapes that are guaranteed to work
   const reliableModels = {
-    sphere: 'https://threejs.org/examples/models/gltf/DamagedHelmet/DamagedHelmet.gltf',
+    sphere: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Sphere/glTF/Sphere.gltf',
     cube: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF/Box.gltf',
     duck: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Duck/glTF/Duck.gltf',
+    cylinder: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF/Box.gltf', // Use box as fallback
     default: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF/Box.gltf'
   };
 

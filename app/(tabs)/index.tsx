@@ -379,7 +379,7 @@ export default function HomePage() {
                 <TouchableOpacity
                   style={[
                     styles.primaryButton,
-                    systemStatus !== 'ready' && styles.primaryButtonDisabled
+                    !isReady && styles.primaryButtonDisabled
                   ]}
                   onPress={handleStartAR}
                   activeOpacity={0.8}

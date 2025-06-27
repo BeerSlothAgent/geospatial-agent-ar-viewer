@@ -40,7 +40,7 @@ export default function DatabaseStatus({
     if (!isSupabaseConfigured) return 'Not Configured';
     if (isLoading) return 'Connecting...';
     if (error) return 'Connection Error';
-    if (isConnected) return 'Connected';
+    if (isConnected) return 'Connected (Direct Query)';
     return 'Disconnected';
   };
 
@@ -124,9 +124,16 @@ export default function DatabaseStatus({
               <WifiOff size={16} color="#ff6b35" strokeWidth={2} />
             )}
             <Text style={[styles.detailValue, { color: getStatusColor() }]}>
-              {isConnected ? 'Online' : 'Offline'}
+              {isConnected ? 'Online (Direct Query)' : 'Offline'}
             </Text>
           </View>
+        </View>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.detailLabel}>Query Method</Text>
+          <Text style={styles.detailValue}>
+            Direct Table Query (RPC Disabled)
+          </Text>
         </View>
 
         {lastSync && (
@@ -189,7 +196,7 @@ export default function DatabaseStatus({
       <View style={styles.infoSection}>
         <Text style={styles.infoText}>
           {isSupabaseConfigured 
-            ? 'Database connection is required to retrieve AR objects from the deployed_objects table.'
+            ? 'Database connection uses direct table queries for maximum reliability. RPC functions are disabled to avoid column errors.'
             : 'Configure Supabase credentials to connect to your database and load real AR objects.'
           }
         </Text>
