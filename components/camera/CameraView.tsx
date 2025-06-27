@@ -10,7 +10,7 @@ import {
   Modal,
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { Camera, RotateCcw, X, CircleAlert as AlertCircle, Settings, Zap, ZapOff, Cuboid as Cube } from 'lucide-react-native';
+import { Camera, RotateCcw, X, CircleAlert as AlertCircle, Settings, Zap, ZapOff, Cuboid as Cube, RefreshCw } from 'lucide-react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -45,6 +45,7 @@ export default function ARCameraView({
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showARView, setShowARView] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   
   const cameraRef = useRef<CameraView>(null);
   
@@ -100,16 +101,28 @@ export default function ARCameraView({
   // Handle camera ready
   const handleCameraReady = () => {
     setIsCameraReady(true);
+    setError(null); // Clear any previous errors
+    setRetryCount(0); // Reset retry count on success
     onCameraReady?.();
     console.log('📷 Camera ready');
   };
 
-  // Handle camera errors
+  // Enhanced camera error handling
   const handleCameraError = (error: any) => {
     const errorMessage = error?.message || 'Camera error occurred';
     setError(errorMessage);
     onError?.(errorMessage);
     console.error('❌ Camera error:', error);
+    
+    // Auto-retry for device in use errors (up to 3 times)
+    if (errorMessage.toLowerCase().includes('device in use') && retryCount < 3) {
+      console.log(`🔄 Auto-retrying camera initialization (attempt ${retryCount + 1}/3)...`);
+      setTimeout(() => {
+        setRetryCount(prev => prev + 1);
+        setError(null);
+        setIsCameraReady(false);
+      }, 2000);
+    }
   };
 
   // Toggle camera facing
@@ -185,6 +198,73 @@ export default function ARCameraView({
     }
   };
 
+  // Get error details for better user messaging
+  const getErrorDetails = (errorMessage: string) => {
+    const lowerError = errorMessage.toLowerCase();
+    
+    if (lowerError.includes('device in use') || lowerError.includes('in use')) {
+      return {
+        title: 'Camera Already in Use',
+        message: 'The camera is currently being used by another application or browser tab. Please close other apps or tabs that might be using the camera and try again.',
+        actionText: 'Try Again',
+        showRefreshTip: true,
+        showAutoRetry: retryCount > 0,
+        canRetry: true
+      };
+    }
+    
+    if (lowerError.includes('permission') || lowerError.includes('denied')) {
+      return {
+        title: 'Camera Permission Denied',
+        message: 'Camera access was denied. Please enable camera permissions in your browser or device settings.',
+        actionText: 'Grant Permission',
+        showRefreshTip: false,
+        showAutoRetry: false,
+        canRetry: true
+      };
+    }
+    
+    if (lowerError.includes('not found') || lowerError.includes('no camera')) {
+      return {
+        title: 'No Camera Found',
+        message: 'No camera device was detected. Please ensure your device has a camera and it\'s properly connected.',
+        actionText: 'Try Again',
+        showRefreshTip: false,
+        showAutoRetry: false,
+        canRetry: true
+      };
+    }
+    
+    if (lowerError.includes('not supported') || lowerError.includes('unsupported')) {
+      return {
+        title: 'Camera Not Supported',
+        message: 'Camera functionality is not supported on this device or browser. Please try using a different browser or device.',
+        actionText: 'Close',
+        showRefreshTip: false,
+        showAutoRetry: false,
+        canRetry: false
+      };
+    }
+    
+    // Default error handling
+    return {
+      title: 'Camera Error',
+      message: errorMessage,
+      actionText: 'Try Again',
+      showRefreshTip: false,
+      showAutoRetry: false,
+      canRetry: true
+    };
+  };
+
+  // Manual retry function
+  const handleRetry = () => {
+    console.log('🔄 Manual camera retry initiated...');
+    setError(null);
+    setIsCameraReady(false);
+    setRetryCount(0);
+  };
+
   // Loading state while permissions are being checked
   if (!permission) {
     return (
@@ -244,25 +324,54 @@ export default function ARCameraView({
     );
   }
 
-  // Error state
+  // Error state with improved messaging
   if (error) {
+    const errorDetails = getErrorDetails(error);
+    
     return (
       <View style={styles.container}>
         <View style={styles.errorContainer}>
           <AlertCircle size={48} color="#ff6b35" strokeWidth={2} />
-          <Text style={styles.errorTitle}>Camera Error</Text>
-          <Text style={styles.errorMessage}>{error}</Text>
+          <Text style={styles.errorTitle}>{errorDetails.title}</Text>
+          <Text style={styles.errorMessage}>{errorDetails.message}</Text>
           
-          <TouchableOpacity
-            style={styles.retryButton}
-            onPress={() => {
-              setError(null);
-              setIsCameraReady(false);
-            }}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.retryButtonText}>Try Again</Text>
-          </TouchableOpacity>
+          {errorDetails.showAutoRetry && (
+            <View style={styles.autoRetryContainer}>
+              <RefreshCw size={16} color="#00d4ff" strokeWidth={2} />
+              <Text style={styles.autoRetryText}>
+                Auto-retry attempt {retryCount}/3 in progress...
+              </Text>
+            </View>
+          )}
+          
+          {errorDetails.showRefreshTip && (
+            <View style={styles.tipContainer}>
+              <Text style={styles.tipTitle}>💡 Troubleshooting Tips:</Text>
+              <Text style={styles.tipText}>
+                • Close other browser tabs that might be using the camera
+              </Text>
+              <Text style={styles.tipText}>
+                • Close other applications that might be using the camera
+              </Text>
+              <Text style={styles.tipText}>
+                • Refresh the page and try again
+              </Text>
+              <Text style={styles.tipText}>
+                • Try switching to a different camera (front/back)
+              </Text>
+            </View>
+          )}
+          
+          {errorDetails.canRetry && (
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={handleRetry}
+              activeOpacity={0.8}
+            >
+              <RefreshCw size={16} color="#000" strokeWidth={2} />
+              <Text style={styles.retryButtonText}>{errorDetails.actionText}</Text>
+            </TouchableOpacity>
+          )}
           
           <TouchableOpacity
             style={styles.closeButton}
@@ -521,14 +630,52 @@ const styles = StyleSheet.create({
     color: '#aaa',
     textAlign: 'center',
     lineHeight: 24,
-    marginBottom: 32,
+    marginBottom: 24,
+  },
+  autoRetryContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    gap: 8,
+  },
+  autoRetryText: {
+    fontSize: 14,
+    color: '#00d4ff',
+    fontWeight: '600',
+  },
+  tipContainer: {
+    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 212, 255, 0.3)',
+    alignSelf: 'stretch',
+  },
+  tipTitle: {
+    fontSize: 16,
+    color: '#00d4ff',
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  tipText: {
+    fontSize: 14,
+    color: '#00d4ff',
+    lineHeight: 20,
+    marginBottom: 4,
   },
   retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#00d4ff',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
     marginBottom: 16,
+    gap: 8,
   },
   retryButtonText: {
     fontSize: 16,
