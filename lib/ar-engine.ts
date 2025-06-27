@@ -128,11 +128,16 @@ export class AREngine {
         deployedObject.scale_z
       );
 
-      // Enable shadows
+      // Enable shadows and compute bounding spheres
       object.traverse((child) => {
         if (child instanceof THREE.Mesh) {
           child.castShadow = true;
           child.receiveShadow = true;
+          
+          // Ensure bounding sphere is computed to prevent undefined errors
+          if (child.geometry && child.geometry.boundingSphere === null) {
+            child.geometry.computeBoundingSphere();
+          }
         }
       });
 
@@ -171,6 +176,9 @@ export class AREngine {
       opacity: 0.8
     });
     const cube = new THREE.Mesh(geometry, material);
+
+    // Ensure bounding sphere is computed
+    geometry.computeBoundingSphere();
 
     const worldPosition = this.coordinateConverter.gpsToWorld(
       deployedObject.latitude,
@@ -225,7 +233,13 @@ export class AREngine {
 
     const visibleObjects: string[] = [];
     this.objects.forEach((object, id) => {
-      if (frustum.intersectsObject(object)) {
+      // Check if object has valid bounding sphere before frustum test
+      if (object instanceof THREE.Mesh && object.geometry && object.geometry.boundingSphere) {
+        if (frustum.intersectsObject(object)) {
+          visibleObjects.push(id);
+        }
+      } else if (frustum.intersectsObject(object)) {
+        // For non-mesh objects or objects without geometry
         visibleObjects.push(id);
       }
     });

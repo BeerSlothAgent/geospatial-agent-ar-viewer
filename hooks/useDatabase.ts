@@ -91,7 +91,7 @@ export function useDatabase(): UseDatabaseReturn {
           latitude: parseFloat(obj.latitude),
           longitude: parseFloat(obj.longitude),
           altitude: parseFloat(obj.altitude || 0),
-          model_url: obj.model_url || 'https://threejs.org/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf',
+          model_url: obj.model_url || 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF/Box.gltf',
           model_type: obj.model_type || 'gltf',
           scale_x: parseFloat(obj.scale_x || 1.0),
           scale_y: parseFloat(obj.scale_y || 1.0),
@@ -210,7 +210,7 @@ export function useDatabase(): UseDatabaseReturn {
   };
 }
 
-// Mock data generation for demo purposes
+// Mock data generation for demo purposes with reliable model URLs
 function generateMockObjects(query: NearbyObjectsQuery): DeployedObject[] {
   const { latitude, longitude, radius_meters = 100, limit = 50 } = query;
   
@@ -222,7 +222,7 @@ function generateMockObjects(query: NearbyObjectsQuery): DeployedObject[] {
       latitude: latitude + 0.0001,
       longitude: longitude + 0.0001,
       altitude: 10,
-      model_url: 'https://threejs.org/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf',
+      model_url: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF/Box.gltf',
       model_type: 'gltf',
       scale_x: 1.0,
       scale_y: 1.0,
@@ -243,7 +243,7 @@ function generateMockObjects(query: NearbyObjectsQuery): DeployedObject[] {
       latitude: latitude - 0.0001,
       longitude: longitude + 0.0002,
       altitude: 15,
-      model_url: 'https://threejs.org/examples/models/gltf/Suzanne/glTF/Suzanne.gltf',
+      model_url: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Sphere/glTF/Sphere.gltf',
       model_type: 'gltf',
       scale_x: 0.5,
       scale_y: 0.5,
@@ -259,12 +259,12 @@ function generateMockObjects(query: NearbyObjectsQuery): DeployedObject[] {
     },
     {
       id: 'mock-3',
-      name: 'Test Object',
-      description: 'Test AR object for demonstration',
+      name: 'Test Duck',
+      description: 'Test AR duck object for demonstration',
       latitude: latitude + 0.0002,
       longitude: longitude - 0.0001,
       altitude: 5,
-      model_url: 'https://threejs.org/examples/models/gltf/Duck/glTF/Duck.gltf',
+      model_url: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Duck/glTF/Duck.gltf',
       model_type: 'gltf',
       scale_x: 2.0,
       scale_y: 2.0,
