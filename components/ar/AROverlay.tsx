@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Cube, Zap, Wifi, WifiOff, Eye, Target } from 'lucide-react-native';
+import { Cuboid as Cube, Zap, Wifi, WifiOff, Eye, Target } from 'lucide-react-native';
 import { ARSessionState, ARCapabilities } from '@/types/ar';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import StatusBadge from '@/components/ui/StatusBadge';

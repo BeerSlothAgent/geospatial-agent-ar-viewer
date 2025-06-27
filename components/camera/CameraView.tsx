@@ -10,7 +10,7 @@ import {
   Modal,
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { Camera, RotateCcw, X, CircleAlert as AlertCircle, Settings, Zap, ZapOff, Cube } from 'lucide-react-native';
+import { Camera, RotateCcw, X, CircleAlert as AlertCircle, Settings, Zap, ZapOff, Cuboid as Cube } from 'lucide-react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
