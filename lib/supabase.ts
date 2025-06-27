@@ -67,7 +67,7 @@ export const testConnection = async (): Promise<boolean> => {
   }
 };
 
-// Get nearby objects from Supabase
+// Get nearby objects from Supabase with robust error handling
 export const getNearbyObjectsFromSupabase = async (
   latitude: number,
   longitude: number,
@@ -99,7 +99,7 @@ export const getNearbyObjectsFromSupabase = async (
       console.log('⚠️ RPC function not available, using direct query');
     }
 
-    // Fallback to direct query with PostGIS if RPC function doesn't exist
+    // Fallback to direct query - only select columns that exist
     const { data, error } = await supabase
       .from('deployed_objects')
       .select(`
@@ -109,6 +109,16 @@ export const getNearbyObjectsFromSupabase = async (
         latitude,
         longitude,
         altitude,
+        object_type,
+        user_id,
+        created_at,
+        updated_at,
+        preciselatitude,
+        preciselongitude,
+        precisealtitude,
+        accuracy,
+        correctionapplied,
+        is_active,
         model_url,
         model_type,
         scale_x,
@@ -117,16 +127,59 @@ export const getNearbyObjectsFromSupabase = async (
         rotation_x,
         rotation_y,
         rotation_z,
-        is_active,
-        visibility_radius,
-        created_at,
-        updated_at
+        visibility_radius
       `)
       .eq('is_active', true)
       .limit(50);
 
     if (error) {
       console.error('❌ Error fetching objects from Supabase:', error);
+      
+      // If the error is about missing columns, try a more basic query
+      if (error.message.includes('column') && error.message.includes('does not exist')) {
+        console.log('🔄 Trying basic query with only guaranteed columns...');
+        
+        const { data: basicData, error: basicError } = await supabase
+          .from('deployed_objects')
+          .select(`
+            id,
+            name,
+            description,
+            latitude,
+            longitude,
+            altitude,
+            object_type,
+            user_id,
+            created_at,
+            is_active
+          `)
+          .eq('is_active', true)
+          .limit(50);
+
+        if (basicError) {
+          console.error('❌ Basic query also failed:', basicError);
+          return null;
+        }
+
+        // Transform basic data to include defaults for missing columns
+        const transformedData = basicData?.map(obj => ({
+          ...obj,
+          model_url: null,
+          model_type: obj.object_type || 'sphere',
+          scale_x: 1.0,
+          scale_y: 1.0,
+          scale_z: 1.0,
+          rotation_x: 0.0,
+          rotation_y: 0.0,
+          rotation_z: 0.0,
+          visibility_radius: 50.0,
+          distance_meters: calculateDistance(latitude, longitude, obj.latitude, obj.longitude)
+        })).filter(obj => obj.distance_meters <= radius) || [];
+
+        console.log(`✅ Found ${transformedData.length} objects using basic query`);
+        return transformedData;
+      }
+      
       return null;
     }
 
@@ -138,6 +191,16 @@ export const getNearbyObjectsFromSupabase = async (
       );
       return {
         ...obj,
+        // Provide defaults for potentially missing columns
+        model_url: obj.model_url || null,
+        model_type: obj.model_type || obj.object_type || 'sphere',
+        scale_x: obj.scale_x || 1.0,
+        scale_y: obj.scale_y || 1.0,
+        scale_z: obj.scale_z || 1.0,
+        rotation_x: obj.rotation_x || 0.0,
+        rotation_y: obj.rotation_y || 0.0,
+        rotation_z: obj.rotation_z || 0.0,
+        visibility_radius: obj.visibility_radius || 50.0,
         distance_meters: distance
       };
     }).filter(obj => obj.distance_meters <= radius) || [];

@@ -111,9 +111,17 @@ export class AREngine {
         deployedObject.altitude || 0
       );
 
-      // Load 3D model
-      const gltf = await this.loadModel(deployedObject.model_url);
-      const object = gltf.scene;
+      let object: THREE.Object3D;
+
+      try {
+        // Try to load 3D model
+        const gltf = await this.loadModel(deployedObject.model_url);
+        object = gltf.scene;
+      } catch (modelError) {
+        console.warn(`Failed to load model for ${deployedObject.id}, using fallback:`, modelError);
+        // Create fallback primitive object
+        object = this.createFallbackObject(deployedObject);
+      }
 
       // Apply transformations
       object.position.set(worldPosition.x, worldPosition.y, worldPosition.z);
@@ -128,18 +136,8 @@ export class AREngine {
         deployedObject.scale_z
       );
 
-      // Enable shadows and compute bounding spheres
-      object.traverse((child) => {
-        if (child instanceof THREE.Mesh) {
-          child.castShadow = true;
-          child.receiveShadow = true;
-          
-          // Ensure bounding sphere is computed to prevent undefined errors
-          if (child.geometry && child.geometry.boundingSphere === null) {
-            child.geometry.computeBoundingSphere();
-          }
-        }
-      });
+      // Enable shadows and ensure proper setup
+      this.setupObjectForRendering(object);
 
       // Add to scene and track
       this.scene.add(object);
@@ -149,8 +147,18 @@ export class AREngine {
     } catch (error) {
       console.error(`Failed to load AR object ${deployedObject.id}:`, error);
       
-      // Create fallback primitive object
-      this.createFallbackObject(deployedObject);
+      // Create fallback primitive object as last resort
+      const fallbackObject = this.createFallbackObject(deployedObject);
+      const worldPosition = this.coordinateConverter.gpsToWorld(
+        deployedObject.latitude,
+        deployedObject.longitude,
+        deployedObject.altitude || 0
+      );
+      
+      fallbackObject.position.set(worldPosition.x, worldPosition.y, worldPosition.z);
+      this.setupObjectForRendering(fallbackObject);
+      this.scene.add(fallbackObject);
+      this.objects.set(deployedObject.id, fallbackObject);
     }
   }
 
@@ -167,37 +175,60 @@ export class AREngine {
     });
   }
 
-  private createFallbackObject(deployedObject: DeployedObject) {
-    // Create a simple colored cube as fallback
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
+  private createFallbackObject(deployedObject: DeployedObject): THREE.Object3D {
+    // Create appropriate geometry based on model type
+    let geometry: THREE.BufferGeometry;
+    
+    switch (deployedObject.model_type) {
+      case 'sphere':
+        geometry = new THREE.SphereGeometry(0.5, 32, 32);
+        break;
+      case 'cube':
+        geometry = new THREE.BoxGeometry(1, 1, 1);
+        break;
+      case 'cylinder':
+        geometry = new THREE.CylinderGeometry(0.5, 0.5, 1, 32);
+        break;
+      default:
+        geometry = new THREE.SphereGeometry(0.5, 32, 32);
+    }
+
     const material = new THREE.MeshLambertMaterial({ 
       color: 0x00d4ff,
       transparent: true,
       opacity: 0.8
     });
-    const cube = new THREE.Mesh(geometry, material);
-
-    // Ensure bounding sphere is computed
+    
+    const mesh = new THREE.Mesh(geometry, material);
+    
+    // Ensure geometry has proper bounding volumes
     geometry.computeBoundingSphere();
+    geometry.computeBoundingBox();
+    
+    return mesh;
+  }
 
-    const worldPosition = this.coordinateConverter.gpsToWorld(
-      deployedObject.latitude,
-      deployedObject.longitude,
-      deployedObject.altitude || 0
-    );
-
-    cube.position.set(worldPosition.x, worldPosition.y, worldPosition.z);
-    cube.scale.set(
-      deployedObject.scale_x,
-      deployedObject.scale_y,
-      deployedObject.scale_z
-    );
-
-    cube.castShadow = true;
-    cube.receiveShadow = true;
-
-    this.scene.add(cube);
-    this.objects.set(deployedObject.id, cube);
+  private setupObjectForRendering(object: THREE.Object3D) {
+    // Update world matrix to ensure proper transformations
+    object.updateMatrixWorld(true);
+    
+    // Traverse and setup all child objects
+    object.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+        
+        // Ensure geometry has proper bounding volumes
+        if (child.geometry) {
+          if (!child.geometry.boundingSphere) {
+            child.geometry.computeBoundingSphere();
+          }
+          if (!child.geometry.boundingBox) {
+            child.geometry.computeBoundingBox();
+          }
+        }
+      }
+    });
   }
 
   public removeObject(objectId: string) {
@@ -232,19 +263,49 @@ export class AREngine {
     frustum.setFromProjectionMatrix(cameraMatrix);
 
     const visibleObjects: string[] = [];
+    
     this.objects.forEach((object, id) => {
-      // Check if object has valid bounding sphere before frustum test
-      if (object instanceof THREE.Mesh && object.geometry && object.geometry.boundingSphere) {
-        if (frustum.intersectsObject(object)) {
+      try {
+        // Ensure object world matrix is up to date
+        object.updateMatrixWorld(true);
+        
+        // Compute bounding sphere for frustum culling
+        const boundingSphere = this.computeObjectBoundingSphere(object);
+        
+        if (boundingSphere && frustum.intersectsSphere(boundingSphere)) {
           visibleObjects.push(id);
         }
-      } else if (frustum.intersectsObject(object)) {
-        // For non-mesh objects or objects without geometry
+      } catch (error) {
+        console.warn(`Error checking visibility for object ${id}:`, error);
+        // Include object in view if we can't determine visibility
         visibleObjects.push(id);
       }
     });
 
     return visibleObjects;
+  }
+
+  private computeObjectBoundingSphere(object: THREE.Object3D): THREE.Sphere | null {
+    try {
+      // Create a bounding box for the entire object hierarchy
+      const box = new THREE.Box3();
+      box.setFromObject(object);
+      
+      // If box is empty, create a default sphere
+      if (box.isEmpty()) {
+        return new THREE.Sphere(object.position.clone(), 1.0);
+      }
+      
+      // Create sphere from bounding box
+      const sphere = new THREE.Sphere();
+      box.getBoundingSphere(sphere);
+      
+      return sphere;
+    } catch (error) {
+      console.warn('Error computing bounding sphere:', error);
+      // Return a default sphere at object position
+      return new THREE.Sphere(object.position.clone(), 1.0);
+    }
   }
 
   public getRenderStats() {
