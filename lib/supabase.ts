@@ -49,10 +49,11 @@ export const testConnection = async (): Promise<boolean> => {
 
     console.log('🔗 Testing Supabase connection...');
 
-    // Test actual connection to Supabase
+    // Test actual connection to Supabase with only guaranteed columns
     const { data, error } = await supabase
       .from('deployed_objects')
-      .select('count', { count: 'exact', head: true });
+      .select('id, name, created_at')
+      .limit(1);
     
     if (error) {
       console.error('❌ Supabase connection test failed:', error);
@@ -99,7 +100,7 @@ export const getNearbyObjectsFromSupabase = async (
       console.log('⚠️ RPC function not available, using direct query');
     }
 
-    // Fallback to direct query - only select columns that exist
+    // Fallback to direct query - only select columns that actually exist in your schema
     const { data, error } = await supabase
       .from('deployed_objects')
       .select(`
@@ -117,16 +118,7 @@ export const getNearbyObjectsFromSupabase = async (
         precisealtitude,
         accuracy,
         correctionapplied,
-        is_active,
-        model_url,
-        model_type,
-        scale_x,
-        scale_y,
-        scale_z,
-        rotation_x,
-        rotation_y,
-        rotation_z,
-        visibility_radius
+        is_active
       `)
       .eq('is_active', true)
       .limit(50);
@@ -134,9 +126,9 @@ export const getNearbyObjectsFromSupabase = async (
     if (error) {
       console.error('❌ Error fetching objects from Supabase:', error);
       
-      // If the error is about missing columns, try a more basic query
+      // If the error is about missing columns, try an even more basic query
       if (error.message.includes('column') && error.message.includes('does not exist')) {
-        console.log('🔄 Trying basic query with only guaranteed columns...');
+        console.log('🔄 Trying minimal query with only core columns...');
         
         const { data: basicData, error: basicError } = await supabase
           .from('deployed_objects')
@@ -149,10 +141,8 @@ export const getNearbyObjectsFromSupabase = async (
             altitude,
             object_type,
             user_id,
-            created_at,
-            is_active
+            created_at
           `)
-          .eq('is_active', true)
           .limit(50);
 
         if (basicError) {
@@ -163,6 +153,13 @@ export const getNearbyObjectsFromSupabase = async (
         // Transform basic data to include defaults for missing columns
         const transformedData = basicData?.map(obj => ({
           ...obj,
+          // Add missing columns with defaults
+          preciselatitude: obj.latitude,
+          preciselongitude: obj.longitude,
+          precisealtitude: obj.altitude || 0,
+          accuracy: null,
+          correctionapplied: false,
+          is_active: true,
           model_url: null,
           model_type: obj.object_type || 'sphere',
           scale_x: 1.0,
@@ -172,10 +169,11 @@ export const getNearbyObjectsFromSupabase = async (
           rotation_y: 0.0,
           rotation_z: 0.0,
           visibility_radius: 50.0,
+          updated_at: obj.created_at, // Use created_at as updated_at fallback
           distance_meters: calculateDistance(latitude, longitude, obj.latitude, obj.longitude)
         })).filter(obj => obj.distance_meters <= radius) || [];
 
-        console.log(`✅ Found ${transformedData.length} objects using basic query`);
+        console.log(`✅ Found ${transformedData.length} objects using minimal query`);
         return transformedData;
       }
       
@@ -191,18 +189,19 @@ export const getNearbyObjectsFromSupabase = async (
       return {
         ...obj,
         // Provide defaults for potentially missing columns
-        model_url: obj.model_url || null,
-        model_type: obj.model_type || obj.object_type || 'sphere',
-        scale_x: obj.scale_x || 1.0,
-        scale_y: obj.scale_y || 1.0,
-        scale_z: obj.scale_z || 1.0,
-        rotation_x: obj.rotation_x || 0.0,
-        rotation_y: obj.rotation_y || 0.0,
-        rotation_z: obj.rotation_z || 0.0,
-        visibility_radius: obj.visibility_radius || 50.0,
+        model_url: null,
+        model_type: obj.object_type || 'sphere',
+        scale_x: 1.0,
+        scale_y: 1.0,
+        scale_z: 1.0,
+        rotation_x: 0.0,
+        rotation_y: 0.0,
+        rotation_z: 0.0,
+        visibility_radius: 50.0,
+        updated_at: obj.created_at, // Use created_at as updated_at fallback
         distance_meters: distance
       };
-    }).filter(obj => obj.distance_meters <= radius) || [];
+    }).filter(obj => (obj.distance_meters || 0) <= radius) || [];
 
     console.log(`✅ Found ${objectsWithDistance.length} objects using direct query`);
     return objectsWithDistance;
@@ -250,10 +249,11 @@ export const getConnectionStatus = async (): Promise<{
       };
     }
 
-    // Test connection
+    // Test connection with minimal query
     const { error } = await supabase
       .from('deployed_objects')
-      .select('count', { count: 'exact', head: true });
+      .select('id')
+      .limit(1);
     
     const latency = Date.now() - startTime;
     

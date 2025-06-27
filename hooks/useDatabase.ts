@@ -91,8 +91,8 @@ export function useDatabase(): UseDatabaseReturn {
           latitude: parseFloat(obj.latitude),
           longitude: parseFloat(obj.longitude),
           altitude: parseFloat(obj.altitude || 0),
-          model_url: obj.model_url || getReliableModelUrl(obj.model_type || 'sphere'),
-          model_type: obj.model_type || 'sphere',
+          model_url: obj.model_url || getReliableModelUrl(obj.model_type || obj.object_type || 'sphere'),
+          model_type: obj.model_type || obj.object_type || 'sphere',
           scale_x: parseFloat(obj.scale_x || 1.0),
           scale_y: parseFloat(obj.scale_y || 1.0),
           scale_z: parseFloat(obj.scale_z || 1.0),
@@ -102,7 +102,7 @@ export function useDatabase(): UseDatabaseReturn {
           is_active: obj.is_active !== false,
           visibility_radius: parseInt(obj.visibility_radius || 100),
           created_at: obj.created_at || new Date().toISOString(),
-          updated_at: obj.updated_at || new Date().toISOString(),
+          updated_at: obj.updated_at || obj.created_at || new Date().toISOString(),
           distance_meters: parseFloat(obj.distance_meters || 0),
         }));
         
