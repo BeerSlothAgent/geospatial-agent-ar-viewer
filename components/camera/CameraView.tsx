@@ -7,9 +7,10 @@ import {
   Platform,
   Alert,
   Dimensions,
+  Modal,
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
-import { Camera, RotateCcw, X, CircleAlert as AlertCircle, Settings, Zap, ZapOff } from 'lucide-react-native';
+import { Camera, RotateCcw, X, CircleAlert as AlertCircle, Settings, Zap, ZapOff, Cube } from 'lucide-react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -17,6 +18,9 @@ import Animated, {
   withRepeat,
   withSequence,
 } from 'react-native-reanimated';
+import ARView from '@/components/ar/ARView';
+import { DeployedObject } from '@/types/database';
+import { LocationData } from '@/hooks/useLocation';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -24,14 +28,23 @@ interface CameraViewProps {
   onClose: () => void;
   onCameraReady?: () => void;
   onError?: (error: string) => void;
+  objects?: DeployedObject[];
+  userLocation?: LocationData | null;
 }
 
-export default function ARCameraView({ onClose, onCameraReady, onError }: CameraViewProps) {
+export default function ARCameraView({ 
+  onClose, 
+  onCameraReady, 
+  onError,
+  objects = [],
+  userLocation = null,
+}: CameraViewProps) {
   const [facing, setFacing] = useState<CameraType>('back');
   const [permission, requestPermission] = useCameraPermissions();
   const [isFlashOn, setIsFlashOn] = useState(false);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showARView, setShowARView] = useState(false);
   
   const cameraRef = useRef<CameraView>(null);
   
@@ -100,6 +113,29 @@ export default function ARCameraView({ onClose, onCameraReady, onError }: Camera
     if (Platform.OS !== 'web') {
       setIsFlashOn(!isFlashOn);
     }
+  };
+
+  // Start AR mode
+  const startARMode = () => {
+    if (objects.length === 0) {
+      Alert.alert(
+        'No AR Objects',
+        'No AR objects are available in your current location. Move to a different area or wait for objects to be deployed.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    if (!userLocation) {
+      Alert.alert(
+        'Location Required',
+        'Location services are required for AR functionality. Please enable location access.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    setShowARView(true);
   };
 
   // Request permissions with user-friendly messaging
@@ -245,7 +281,7 @@ export default function ARCameraView({ onClose, onCameraReady, onError }: Camera
             
             <View style={styles.statusIndicator}>
               <Animated.View style={[styles.statusDot, pulseStyle]} />
-              <Text style={styles.statusText}>AR Ready</Text>
+              <Text style={styles.statusText}>Camera Ready</Text>
             </View>
             
             <TouchableOpacity
@@ -266,6 +302,35 @@ export default function ARCameraView({ onClose, onCameraReady, onError }: Camera
             <View style={[styles.crosshairLine, styles.crosshairLineVertical]} />
           </View>
 
+          {/* AR Mode Button */}
+          <View style={styles.arModeContainer}>
+            <TouchableOpacity
+              style={[
+                styles.arModeButton,
+                objects.length === 0 && styles.arModeButtonDisabled
+              ]}
+              onPress={startARMode}
+              activeOpacity={0.8}
+              disabled={objects.length === 0}
+            >
+              <Animated.View style={pulseStyle}>
+                <Cube size={24} color={objects.length > 0 ? "#000" : "#666"} strokeWidth={2} />
+              </Animated.View>
+              <Text style={[
+                styles.arModeButtonText,
+                objects.length === 0 && styles.arModeButtonTextDisabled
+              ]}>
+                Start AR Mode
+              </Text>
+            </TouchableOpacity>
+            
+            {objects.length > 0 && (
+              <Text style={styles.objectsAvailable}>
+                {objects.length} AR object{objects.length !== 1 ? 's' : ''} available
+              </Text>
+            )}
+          </View>
+
           {/* Bottom Controls */}
           <View style={styles.bottomControls}>
             <TouchableOpacity
@@ -283,7 +348,7 @@ export default function ARCameraView({ onClose, onCameraReady, onError }: Camera
             
             <View style={styles.arInfo}>
               <Text style={styles.arInfoText}>Point camera at your surroundings</Text>
-              <Text style={styles.arInfoSubtext}>AR objects will appear when detected</Text>
+              <Text style={styles.arInfoSubtext}>AR objects will appear when AR mode is active</Text>
             </View>
             
             <TouchableOpacity
@@ -295,15 +360,43 @@ export default function ARCameraView({ onClose, onCameraReady, onError }: Camera
             </TouchableOpacity>
           </View>
 
-          {/* AR Object Indicators (placeholder for future objects) */}
+          {/* AR Object Indicators */}
           <View style={styles.arIndicators}>
             <Animated.View style={[styles.arIndicator, pulseStyle]}>
-              <Text style={styles.arIndicatorText}>0</Text>
+              <Text style={styles.arIndicatorText}>{objects.length}</Text>
               <Text style={styles.arIndicatorLabel}>Objects</Text>
             </Animated.View>
           </View>
         </Animated.View>
       </CameraView>
+
+      {/* AR View Modal */}
+      <Modal
+        visible={showARView}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        statusBarTranslucent
+      >
+        <ARView
+          objects={objects}
+          userLocation={userLocation}
+          onObjectSelect={(objectId) => {
+            console.log('Selected AR object:', objectId);
+          }}
+          onError={(error) => {
+            console.error('AR View error:', error);
+            Alert.alert('AR Error', error);
+            setShowARView(false);
+          }}
+        />
+        <TouchableOpacity
+          style={styles.arCloseButton}
+          onPress={() => setShowARView(false)}
+          activeOpacity={0.7}
+        >
+          <X size={24} color="#fff" strokeWidth={2} />
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -528,6 +621,41 @@ const styles = StyleSheet.create({
     width: 1,
     height: 'auto',
   },
+
+  // AR Mode
+  arModeContainer: {
+    position: 'absolute',
+    top: '60%',
+    left: '50%',
+    transform: [{ translateX: -80 }],
+    alignItems: 'center',
+  },
+  arModeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#00d4ff',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 24,
+    gap: 8,
+  },
+  arModeButtonDisabled: {
+    backgroundColor: '#333',
+  },
+  arModeButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000',
+  },
+  arModeButtonTextDisabled: {
+    color: '#666',
+  },
+  objectsAvailable: {
+    fontSize: 12,
+    color: '#00d4ff',
+    marginTop: 8,
+    textAlign: 'center',
+  },
   
   // AR Info
   arInfo: {
@@ -575,5 +703,20 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#fff',
     marginTop: 2,
+  },
+
+  // AR Close Button
+  arCloseButton: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
 });
