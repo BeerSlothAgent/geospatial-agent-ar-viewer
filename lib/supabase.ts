@@ -5,8 +5,15 @@ import { Platform } from 'react-native';
 const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// Create Supabase client
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+// Check if we have valid Supabase credentials
+const hasValidCredentials = SUPABASE_URL && 
+  SUPABASE_ANON_KEY && 
+  SUPABASE_URL !== 'your_supabase_project_url_here' &&
+  SUPABASE_ANON_KEY !== 'your_supabase_anon_key_here' &&
+  SUPABASE_URL.startsWith('https://');
+
+// Create Supabase client only if we have valid credentials
+export const supabase = hasValidCredentials ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     // For this standalone AR viewer, we'll use anonymous access
     autoRefreshToken: false,
@@ -24,14 +31,19 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       'X-Client-Info': `ar-viewer-${Platform.OS}`,
     },
   },
-});
+}) : null;
 
 // Test connection function
 export const testConnection = async (): Promise<boolean> => {
   try {
     // Check if environment variables are set
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      console.warn('Supabase environment variables not set, using demo mode');
+    if (!hasValidCredentials) {
+      console.warn('Supabase environment variables not set or invalid, using demo mode');
+      return false;
+    }
+
+    if (!supabase) {
+      console.warn('Supabase client not initialized');
       return false;
     }
 
@@ -61,8 +73,8 @@ export const getNearbyObjectsFromSupabase = async (
 ) => {
   try {
     // Check if we have valid Supabase credentials
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      console.warn('No Supabase credentials, returning mock data');
+    if (!hasValidCredentials || !supabase) {
+      console.warn('No valid Supabase credentials, returning mock data');
       return null;
     }
 
@@ -96,10 +108,17 @@ export const getConnectionStatus = async (): Promise<{
   
   try {
     // Check if environment variables are set
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    if (!hasValidCredentials) {
       return {
         connected: false,
-        error: 'Supabase environment variables not configured',
+        error: 'Supabase environment variables not configured or invalid',
+      };
+    }
+
+    if (!supabase) {
+      return {
+        connected: false,
+        error: 'Supabase client not initialized',
       };
     }
 
@@ -128,3 +147,6 @@ export const getConnectionStatus = async (): Promise<{
     };
   }
 };
+
+// Export connection status for components to check
+export const isSupabaseConfigured = hasValidCredentials;
