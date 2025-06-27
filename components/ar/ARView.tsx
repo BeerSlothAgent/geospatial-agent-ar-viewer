@@ -49,6 +49,7 @@ export default function ARView({
   // Load objects when they change or user location updates
   useEffect(() => {
     if (sessionState.isActive && objects.length > 0 && userLocation) {
+      console.log(`Loading ${objects.length} AR objects at location:`, userLocation);
       loadObjects(objects, userLocation);
     }
   }, [objects, userLocation, sessionState.isActive, loadObjects]);
@@ -56,6 +57,7 @@ export default function ARView({
   // Handle errors
   useEffect(() => {
     if (sessionState.error) {
+      console.error('AR Session Error:', sessionState.error);
       onError?.(sessionState.error);
     }
   }, [sessionState.error, onError]);
@@ -64,9 +66,13 @@ export default function ARView({
     if (!canvasRef.current) return;
 
     try {
+      console.log('Initializing AR session...');
       const success = await initializeSession(canvasRef.current);
       if (success) {
         setIsInitialized(true);
+        console.log('AR session initialized successfully');
+      } else {
+        console.error('Failed to initialize AR session');
       }
     } catch (error: any) {
       console.error('Failed to initialize AR:', error);
@@ -92,9 +98,21 @@ export default function ARView({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      console.log('Cleaning up AR session');
       endSession();
     };
   }, [endSession]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log('AR View State:', {
+      isInitialized,
+      sessionActive: sessionState.isActive,
+      objectsCount: objects.length,
+      userLocation: userLocation ? `${userLocation.latitude}, ${userLocation.longitude}` : 'none',
+      capabilities,
+    });
+  }, [isInitialized, sessionState.isActive, objects.length, userLocation, capabilities]);
 
   if (Platform.OS !== 'web') {
     // For mobile platforms, we would use a different AR implementation
@@ -136,7 +154,7 @@ export default function ARView({
         sessionState={sessionState}
         onEndSession={endSession}
         onToggleOrientation={() => {
-          // Toggle device orientation tracking
+          console.log('Toggle device orientation tracking');
         }}
       />
     </View>

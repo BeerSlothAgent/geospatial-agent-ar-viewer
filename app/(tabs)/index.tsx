@@ -118,6 +118,7 @@ export default function HomePage() {
     if (!location || !isMounted.current) return;
 
     try {
+      console.log('Loading nearby objects for location:', location);
       const objects = await getNearbyObjects({
         latitude: location.latitude,
         longitude: location.longitude,
@@ -127,6 +128,7 @@ export default function HomePage() {
       
       if (isMounted.current) {
         setNearbyObjects(objects);
+        console.log(`Loaded ${objects.length} nearby objects`);
       }
     } catch (error) {
       console.error('Failed to load nearby objects:', error);
@@ -148,6 +150,7 @@ export default function HomePage() {
 
   const handleStartAR = () => {
     if (!isMounted.current) return;
+    console.log('Starting AR experience with', nearbyObjects.length, 'objects');
     setCameraStatus('loading');
     setShowCamera(true);
   };
@@ -155,6 +158,7 @@ export default function HomePage() {
   const handleCameraReady = () => {
     if (!isMounted.current) return;
     setCameraStatus('ready');
+    console.log('Camera ready for AR');
   };
 
   const handleCameraError = (error: string) => {
@@ -167,6 +171,7 @@ export default function HomePage() {
     if (!isMounted.current) return;
     setShowCamera(false);
     setCameraStatus('idle');
+    console.log('Camera closed');
   };
 
   const handleLearnMore = () => {
@@ -190,6 +195,16 @@ export default function HomePage() {
     console.log('Selected object:', object);
     // TODO: Navigate to object details or start AR view with specific object
   };
+
+  // Debug information
+  const debugInfo = {
+    location: location ? `${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}` : 'None',
+    objectsCount: nearbyObjects.length,
+    databaseConnected: isDatabaseConnected,
+    hasLocationPermission,
+  };
+
+  console.log('HomePage Debug Info:', debugInfo);
 
   return (
     <>
@@ -237,6 +252,15 @@ export default function HomePage() {
                 <Text style={styles.secondaryButtonText}>View Location Services</Text>
                 <ArrowRight size={16} color="#00d4ff" strokeWidth={2} />
               </TouchableOpacity>
+            </View>
+
+            {/* Debug Info Display */}
+            <View style={styles.debugInfo}>
+              <Text style={styles.debugTitle}>System Status</Text>
+              <Text style={styles.debugText}>Location: {debugInfo.location}</Text>
+              <Text style={styles.debugText}>Objects: {debugInfo.objectsCount}</Text>
+              <Text style={styles.debugText}>Database: {debugInfo.databaseConnected ? 'Connected' : 'Disconnected'}</Text>
+              <Text style={styles.debugText}>Location Permission: {debugInfo.hasLocationPermission ? 'Granted' : 'Denied'}</Text>
             </View>
           </Animated.View>
         </View>
@@ -436,7 +460,7 @@ export default function HomePage() {
               />
               <StatusBadge 
                 status={isDatabaseConnected ? 'success' : 'pending'} 
-                text="Phase 4: Database Integration" 
+                text="Phase 5: AR Implementation" 
                 size="small"
               />
             </View>
@@ -449,7 +473,7 @@ export default function HomePage() {
             Built for the AgentSphere ecosystem
           </Text>
           <Text style={styles.footerSubtext}>
-            Standalone AR Viewer • Version 1.0.0 • Phase 4
+            Standalone AR Viewer • Version 1.0.0 • Phase 5
           </Text>
         </View>
       </ScrollView>
@@ -465,6 +489,8 @@ export default function HomePage() {
           onClose={handleCloseCamera}
           onCameraReady={handleCameraReady}
           onError={handleCameraError}
+          objects={nearbyObjects}
+          userLocation={location}
         />
       </Modal>
     </>
@@ -625,6 +651,7 @@ const styles = StyleSheet.create({
   heroButtons: {
     alignItems: 'center',
     gap: 16,
+    marginBottom: 32,
   },
   primaryButton: {
     flexDirection: 'row',
@@ -651,6 +678,29 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: '#00d4ff',
+  },
+
+  // Debug Info
+  debugInfo: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 8,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#333',
+    marginTop: 20,
+    minWidth: 300,
+  },
+  debugTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#00d4ff',
+    marginBottom: 8,
+  },
+  debugText: {
+    fontSize: 12,
+    color: '#aaa',
+    marginBottom: 4,
+    fontFamily: 'monospace',
   },
   
   // Location Section

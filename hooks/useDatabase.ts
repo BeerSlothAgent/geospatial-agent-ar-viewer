@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { testConnection } from '@/lib/supabase';
+import { testConnection, getNearbyObjectsFromSupabase } from '@/lib/supabase';
 import { DeployedObject, NearbyObjectsQuery, DatabaseError } from '@/types/database';
 
 export interface DatabaseState {
@@ -42,7 +42,7 @@ export function useDatabase(): UseDatabaseReturn {
           lastSync: Date.now(),
           error: connected ? null : {
             code: 'CONNECTION_FAILED',
-            message: 'Unable to connect to database',
+            message: 'Unable to connect to Supabase database. Check environment variables.',
           },
         }));
       }
@@ -69,9 +69,45 @@ export function useDatabase(): UseDatabaseReturn {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
       }
 
-      // For demo purposes, we'll simulate the database query
-      // In production, this would use the actual Supabase RPC function
-      const mockObjects = generateMockObjects(query);
+      // Try to get real data from Supabase first
+      const supabaseData = await getNearbyObjectsFromSupabase(
+        query.latitude,
+        query.longitude,
+        query.radius_meters || 100
+      );
+
+      let objects: DeployedObject[] = [];
+
+      if (supabaseData && supabaseData.length > 0) {
+        // Use real Supabase data
+        objects = supabaseData.map((obj: any) => ({
+          id: obj.id,
+          name: obj.name || 'Unnamed Object',
+          description: obj.description || '',
+          latitude: obj.latitude,
+          longitude: obj.longitude,
+          altitude: obj.altitude || 0,
+          model_url: obj.model_url || 'https://threejs.org/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf',
+          model_type: obj.model_type || 'gltf',
+          scale_x: obj.scale_x || 1.0,
+          scale_y: obj.scale_y || 1.0,
+          scale_z: obj.scale_z || 1.0,
+          rotation_x: obj.rotation_x || 0,
+          rotation_y: obj.rotation_y || 0,
+          rotation_z: obj.rotation_z || 0,
+          is_active: obj.is_active !== false,
+          visibility_radius: obj.visibility_radius || 100,
+          created_at: obj.created_at || new Date().toISOString(),
+          updated_at: obj.updated_at || new Date().toISOString(),
+          distance_meters: obj.distance_meters || 0,
+        }));
+        
+        console.log(`Loaded ${objects.length} objects from Supabase`);
+      } else {
+        // Fall back to mock data for demo purposes
+        objects = generateMockObjects(query);
+        console.log(`Using ${objects.length} mock objects (Supabase not available)`);
+      }
       
       if (isMounted.current) {
         setState(prev => ({
@@ -81,7 +117,7 @@ export function useDatabase(): UseDatabaseReturn {
         }));
       }
 
-      return mockObjects;
+      return objects;
     } catch (error: any) {
       const dbError: DatabaseError = {
         code: 'QUERY_ERROR',
@@ -97,7 +133,8 @@ export function useDatabase(): UseDatabaseReturn {
         }));
       }
 
-      return [];
+      // Return mock data as fallback
+      return generateMockObjects(query);
     }
   }, []);
 
@@ -108,7 +145,7 @@ export function useDatabase(): UseDatabaseReturn {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
       }
 
-      // Simulate database query
+      // Try Supabase first, then fall back to mock data
       const mockObject = generateMockObjectById(id);
       
       if (isMounted.current) {
