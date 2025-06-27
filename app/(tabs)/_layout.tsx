@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Camera, Settings, Info } from 'lucide-react-native';
+import { Camera, Settings, Info, Database } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
@@ -28,6 +28,15 @@ export default function TabLayout() {
           title: 'AR Viewer',
           tabBarIcon: ({ size, color }) => (
             <Camera size={size} color={color} strokeWidth={2} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="database"
+        options={{
+          title: 'Database',
+          tabBarIcon: ({ size, color }) => (
+            <Database size={size} color={color} strokeWidth={2} />
           ),
         }}
       />
