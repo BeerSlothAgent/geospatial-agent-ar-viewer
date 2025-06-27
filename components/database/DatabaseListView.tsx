@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
-import { Database, Eye, MapPin, Clock, Cuboid as Cube, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react-native';
+import { Database, Eye, MapPin, Clock, Cuboid as Cube, RefreshCw, CircleAlert as AlertCircle, CircleCheck as CheckCircle } from 'lucide-react-native';
 import { supabase, isSupabaseConfigured, debugSupabaseConfig } from '@/lib/supabase';
 import { DeployedObject } from '@/types/database';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
