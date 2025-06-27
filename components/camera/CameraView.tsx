@@ -76,6 +76,13 @@ export default function ARCameraView({
       -1,
       true
     );
+
+    // Log camera initialization
+    console.log('📷 Camera component initialized with:', {
+      objectsCount: objects.length,
+      hasLocation: !!userLocation,
+      locationCoords: userLocation ? `${userLocation.latitude.toFixed(6)}, ${userLocation.longitude.toFixed(6)}` : 'none'
+    });
   }, []);
 
   const fadeStyle = useAnimatedStyle(() => ({
@@ -94,6 +101,7 @@ export default function ARCameraView({
   const handleCameraReady = () => {
     setIsCameraReady(true);
     onCameraReady?.();
+    console.log('📷 Camera ready');
   };
 
   // Handle camera errors
@@ -101,27 +109,39 @@ export default function ARCameraView({
     const errorMessage = error?.message || 'Camera error occurred';
     setError(errorMessage);
     onError?.(errorMessage);
+    console.error('❌ Camera error:', error);
   };
 
   // Toggle camera facing
   const toggleCameraFacing = () => {
     setFacing(current => (current === 'back' ? 'front' : 'back'));
+    console.log('📷 Camera facing toggled to:', facing === 'back' ? 'front' : 'back');
   };
 
   // Toggle flash
   const toggleFlash = () => {
     if (Platform.OS !== 'web') {
       setIsFlashOn(!isFlashOn);
+      console.log('💡 Flash toggled:', !isFlashOn);
     }
   };
 
   // Start AR mode
   const startARMode = () => {
+    console.log('🚀 Starting AR mode with:', {
+      objectsCount: objects.length,
+      hasLocation: !!userLocation,
+      locationCoords: userLocation ? `${userLocation.latitude.toFixed(6)}, ${userLocation.longitude.toFixed(6)}` : 'none'
+    });
+
     if (objects.length === 0) {
       Alert.alert(
         'No AR Objects',
-        'No AR objects are available in your current location. Move to a different area or wait for objects to be deployed.',
-        [{ text: 'OK' }]
+        'No AR objects are available in your current location. The system will show demo objects for testing.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Continue with Demo', onPress: () => setShowARView(true) }
+        ]
       );
       return;
     }
@@ -305,30 +325,22 @@ export default function ARCameraView({
           {/* AR Mode Button */}
           <View style={styles.arModeContainer}>
             <TouchableOpacity
-              style={[
-                styles.arModeButton,
-                objects.length === 0 && styles.arModeButtonDisabled
-              ]}
+              style={styles.arModeButton}
               onPress={startARMode}
               activeOpacity={0.8}
-              disabled={objects.length === 0}
             >
               <Animated.View style={pulseStyle}>
-                <Cube size={24} color={objects.length > 0 ? "#000" : "#666"} strokeWidth={2} />
+                <Cube size={24} color="#000" strokeWidth={2} />
               </Animated.View>
-              <Text style={[
-                styles.arModeButtonText,
-                objects.length === 0 && styles.arModeButtonTextDisabled
-              ]}>
-                Start AR Mode
-              </Text>
+              <Text style={styles.arModeButtonText}>Start AR Mode</Text>
             </TouchableOpacity>
             
-            {objects.length > 0 && (
-              <Text style={styles.objectsAvailable}>
-                {objects.length} AR object{objects.length !== 1 ? 's' : ''} available
-              </Text>
-            )}
+            <Text style={styles.objectsAvailable}>
+              {objects.length > 0 
+                ? `${objects.length} AR object${objects.length !== 1 ? 's' : ''} available`
+                : 'Demo objects available for testing'
+              }
+            </Text>
           </View>
 
           {/* Bottom Controls */}
@@ -348,7 +360,12 @@ export default function ARCameraView({
             
             <View style={styles.arInfo}>
               <Text style={styles.arInfoText}>Point camera at your surroundings</Text>
-              <Text style={styles.arInfoSubtext}>AR objects will appear when AR mode is active</Text>
+              <Text style={styles.arInfoSubtext}>
+                {objects.length > 0 
+                  ? 'AR objects will appear when AR mode is active'
+                  : 'Demo objects will be shown for testing'
+                }
+              </Text>
             </View>
             
             <TouchableOpacity
@@ -363,7 +380,7 @@ export default function ARCameraView({
           {/* AR Object Indicators */}
           <View style={styles.arIndicators}>
             <Animated.View style={[styles.arIndicator, pulseStyle]}>
-              <Text style={styles.arIndicatorText}>{objects.length}</Text>
+              <Text style={styles.arIndicatorText}>{objects.length || 'Demo'}</Text>
               <Text style={styles.arIndicatorLabel}>Objects</Text>
             </Animated.View>
           </View>
@@ -381,17 +398,20 @@ export default function ARCameraView({
           objects={objects}
           userLocation={userLocation}
           onObjectSelect={(objectId) => {
-            console.log('Selected AR object:', objectId);
+            console.log('🎯 Selected AR object:', objectId);
           }}
           onError={(error) => {
-            console.error('AR View error:', error);
+            console.error('❌ AR View error:', error);
             Alert.alert('AR Error', error);
             setShowARView(false);
           }}
         />
         <TouchableOpacity
           style={styles.arCloseButton}
-          onPress={() => setShowARView(false)}
+          onPress={() => {
+            console.log('🔚 Closing AR view');
+            setShowARView(false);
+          }}
           activeOpacity={0.7}
         >
           <X size={24} color="#fff" strokeWidth={2} />
@@ -639,16 +659,10 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     gap: 8,
   },
-  arModeButtonDisabled: {
-    backgroundColor: '#333',
-  },
   arModeButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#000',
-  },
-  arModeButtonTextDisabled: {
-    color: '#666',
   },
   objectsAvailable: {
     fontSize: 12,
