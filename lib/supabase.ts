@@ -83,7 +83,7 @@ export const getNearbyObjectsFromSupabase = async (
 
     console.log(`🔍 Querying Supabase for objects near ${latitude.toFixed(6)}, ${longitude.toFixed(6)} within ${radius}m`);
 
-    // First try using RPC function if it exists
+    // First try using RPC function if it exists (without updated_at)
     try {
       const { data: rpcData, error: rpcError } = await supabase
         .rpc('get_nearby_objects', {
@@ -94,13 +94,20 @@ export const getNearbyObjectsFromSupabase = async (
 
       if (!rpcError && rpcData) {
         console.log(`✅ Found ${rpcData.length} objects using RPC function`);
-        return rpcData;
+        // Transform RPC data to include updated_at = created_at
+        return rpcData.map((obj: any) => ({
+          ...obj,
+          updated_at: obj.updated_at || obj.created_at, // Use created_at as fallback
+        }));
+      } else if (rpcError) {
+        console.log('⚠️ RPC function failed:', rpcError.message);
       }
     } catch (rpcError) {
       console.log('⚠️ RPC function not available, using direct query');
     }
 
-    // Fallback to direct query - only select columns that actually exist in your schema
+    // Fallback to direct query - only select columns that exist in your schema
+    console.log('🔄 Trying direct query...');
     const { data, error } = await supabase
       .from('deployed_objects')
       .select(`
@@ -118,7 +125,16 @@ export const getNearbyObjectsFromSupabase = async (
         precisealtitude,
         accuracy,
         correctionapplied,
-        is_active
+        is_active,
+        model_url,
+        model_type,
+        scale_x,
+        scale_y,
+        scale_z,
+        rotation_x,
+        rotation_y,
+        rotation_z,
+        visibility_radius
       `)
       .eq('is_active', true)
       .limit(50);
@@ -189,15 +205,15 @@ export const getNearbyObjectsFromSupabase = async (
       return {
         ...obj,
         // Provide defaults for potentially missing columns
-        model_url: null,
-        model_type: obj.object_type || 'sphere',
-        scale_x: 1.0,
-        scale_y: 1.0,
-        scale_z: 1.0,
-        rotation_x: 0.0,
-        rotation_y: 0.0,
-        rotation_z: 0.0,
-        visibility_radius: 50.0,
+        model_url: obj.model_url || null,
+        model_type: obj.model_type || obj.object_type || 'sphere',
+        scale_x: obj.scale_x || 1.0,
+        scale_y: obj.scale_y || 1.0,
+        scale_z: obj.scale_z || 1.0,
+        rotation_x: obj.rotation_x || 0.0,
+        rotation_y: obj.rotation_y || 0.0,
+        rotation_z: obj.rotation_z || 0.0,
+        visibility_radius: obj.visibility_radius || 50.0,
         updated_at: obj.created_at, // Use created_at as updated_at fallback
         distance_meters: distance
       };
