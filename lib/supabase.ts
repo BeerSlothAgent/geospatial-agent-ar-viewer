@@ -112,7 +112,6 @@ export const getNearbyObjectsFromSupabase = async (
         object_type,
         user_id,
         created_at,
-        updated_at,
         preciselatitude,
         preciselongitude,
         precisealtitude,
