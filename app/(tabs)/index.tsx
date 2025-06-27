@@ -9,6 +9,7 @@ import {
   Image,
   Platform,
   Modal,
+  Alert,
 } from 'react-native';
 import { Camera, MapPin, Zap, Globe, ArrowRight, Play, CircleCheck as CheckCircle, Smartphone, Monitor, Tablet, Navigation, Database } from 'lucide-react-native';
 import Animated, {
@@ -41,6 +42,7 @@ export default function HomePage() {
   const [showLocationDetails, setShowLocationDetails] = useState(false);
   const [showDatabaseDetails, setShowDatabaseDetails] = useState(false);
   const [nearbyObjects, setNearbyObjects] = useState<DeployedObject[]>([]);
+  const [initializationStep, setInitializationStep] = useState(0);
   
   // Location hook
   const {
@@ -76,44 +78,101 @@ export default function HomePage() {
   const pulseAnim = useSharedValue(1);
   const rotateAnim = useSharedValue(0);
 
+  // Initialize app step by step
   useEffect(() => {
-    // Start animations on mount
-    fadeAnim.value = withTiming(1, { duration: 1000 });
-    slideAnim.value = withTiming(0, { duration: 800 });
-    pulseAnim.value = withRepeat(
-      withSequence(
-        withTiming(1.1, { duration: 1000 }),
-        withTiming(1, { duration: 1000 })
-      ),
-      -1,
-      true
-    );
-    rotateAnim.value = withRepeat(
-      withTiming(360, { duration: 20000 }),
-      -1,
-      false
-    );
-    
-    // Simulate app ready state with mounted check
-    const readyTimeout = setTimeout(() => {
-      if (isMounted.current) {
-        setIsReady(true);
+    if (!isMounted.current) return;
+
+    const initializeApp = async () => {
+      try {
+        console.log('🚀 Starting app initialization...');
+        
+        // Step 1: Start animations
+        setInitializationStep(1);
+        fadeAnim.value = withTiming(1, { duration: 1000 });
+        slideAnim.value = withTiming(0, { duration: 800 });
+        pulseAnim.value = withRepeat(
+          withSequence(
+            withTiming(1.1, { duration: 1000 }),
+            withTiming(1, { duration: 1000 })
+          ),
+          -1,
+          true
+        );
+        rotateAnim.value = withRepeat(
+          withTiming(360, { duration: 20000 }),
+          -1,
+          false
+        );
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Step 2: Initialize location services
+        if (isMounted.current) {
+          setInitializationStep(2);
+          console.log('📍 Initializing location services...');
+          
+          try {
+            await requestLocationPermissions();
+            await getCurrentPosition();
+          } catch (error) {
+            console.warn('Location initialization failed:', error);
+          }
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Step 3: Initialize database connection
+        if (isMounted.current) {
+          setInitializationStep(3);
+          console.log('🗄️ Initializing database connection...');
+          
+          try {
+            await refreshDatabaseConnection();
+          } catch (error) {
+            console.warn('Database initialization failed:', error);
+          }
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Step 4: Load initial objects
+        if (isMounted.current) {
+          setInitializationStep(4);
+          console.log('🎯 Loading initial AR objects...');
+          await loadNearbyObjects();
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Step 5: Mark as ready
+        if (isMounted.current) {
+          setInitializationStep(5);
+          setIsReady(true);
+          console.log('✅ App initialization complete!');
+        }
+
+      } catch (error) {
+        console.error('❌ App initialization failed:', error);
+        if (isMounted.current) {
+          setIsReady(true); // Still mark as ready to allow user interaction
+        }
       }
-    }, 1500);
-    
+    };
+
+    initializeApp();
+
     // Cleanup function
     return () => {
       isMounted.current = false;
-      clearTimeout(readyTimeout);
     };
   }, []);
 
   // Load nearby objects when location changes
   useEffect(() => {
-    if (location && (isDatabaseConnected || !isSupabaseConfigured)) {
+    if (location && isReady) {
       loadNearbyObjects();
     }
-  }, [location, isDatabaseConnected]);
+  }, [location, isReady]);
 
   const loadNearbyObjects = async () => {
     if (!location || !isMounted.current) return;
@@ -162,7 +221,45 @@ export default function HomePage() {
 
   const handleStartAR = () => {
     if (!isMounted.current) return;
+    
     console.log('🚀 Starting AR experience with', nearbyObjects.length, 'objects');
+    
+    // Check if system is ready
+    if (!isReady) {
+      Alert.alert(
+        'System Initializing',
+        'Please wait for the system to finish initializing before starting AR mode.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    // Check location permission
+    if (!hasLocationPermission) {
+      Alert.alert(
+        'Location Required',
+        'Location access is required for AR functionality. Please enable location permissions.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Enable Location', onPress: requestLocationPermissions }
+        ]
+      );
+      return;
+    }
+
+    // Check if we have location data
+    if (!location) {
+      Alert.alert(
+        'Getting Location',
+        'Please wait while we get your current location for AR positioning.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Retry', onPress: getCurrentPosition }
+        ]
+      );
+      return;
+    }
+
     setCameraStatus('loading');
     setShowCamera(true);
   };
@@ -210,8 +307,10 @@ export default function HomePage() {
 
   // System status calculation
   const getSystemStatus = () => {
+    if (!isReady) return 'initializing';
+    
     const hasLocation = hasLocationPermission && !!location;
-    const hasDatabase = isSupabaseConfigured ? isDatabaseConnected : true; // If not configured, don't require connection
+    const hasDatabase = isSupabaseConfigured ? isDatabaseConnected : true;
     const hasObjects = nearbyObjects.length > 0;
     
     if (hasLocation && hasDatabase && hasObjects) return 'ready';
@@ -221,8 +320,24 @@ export default function HomePage() {
 
   const systemStatus = getSystemStatus();
 
+  // Get initialization message
+  const getInitializationMessage = () => {
+    if (isReady) return 'System Ready';
+    
+    switch (initializationStep) {
+      case 1: return 'Starting animations...';
+      case 2: return 'Initializing location services...';
+      case 3: return 'Connecting to database...';
+      case 4: return 'Loading AR objects...';
+      case 5: return 'Finalizing setup...';
+      default: return 'System Initializing...';
+    }
+  };
+
   // Debug information
   const debugInfo = {
+    isReady,
+    initializationStep,
     location: location ? `${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}` : 'None',
     objectsCount: nearbyObjects.length,
     databaseConnected: isDatabaseConnected,
@@ -268,14 +383,14 @@ export default function HomePage() {
                   ]}
                   onPress={handleStartAR}
                   activeOpacity={0.8}
-                  disabled={systemStatus !== 'ready'}
+                  disabled={!isReady}
                 >
-                  <Play size={20} color={systemStatus === 'ready' ? "#000" : "#666"} strokeWidth={2} />
+                  <Play size={20} color={isReady && systemStatus === 'ready' ? "#000" : "#666"} strokeWidth={2} />
                   <Text style={[
                     styles.primaryButtonText,
-                    systemStatus !== 'ready' && styles.primaryButtonTextDisabled
+                    (!isReady || systemStatus !== 'ready') && styles.primaryButtonTextDisabled
                   ]}>
-                    {systemStatus === 'ready' ? 'Start AR Experience' : 'System Initializing...'}
+                    {isReady && systemStatus === 'ready' ? 'Start AR Experience' : getInitializationMessage()}
                   </Text>
                 </TouchableOpacity>
               </Animated.View>
@@ -505,7 +620,7 @@ export default function HomePage() {
             <View style={styles.statusBadges}>
               <StatusBadge 
                 status={systemStatus === 'ready' ? 'success' : systemStatus === 'partial' ? 'pending' : 'error'} 
-                text={systemStatus === 'ready' ? 'Ready for AR' : systemStatus === 'partial' ? 'Partially Ready' : 'Initializing'} 
+                text={systemStatus === 'ready' ? 'Ready for AR' : systemStatus === 'partial' ? 'Partially Ready' : isReady ? 'Initializing' : getInitializationMessage()} 
                 size="small"
               />
               <StatusBadge 
@@ -711,6 +826,8 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     gap: 8,
+    minWidth: 250,
+    justifyContent: 'center',
   },
   primaryButtonDisabled: {
     backgroundColor: '#333',
@@ -719,6 +836,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#000',
+    textAlign: 'center',
   },
   primaryButtonTextDisabled: {
     color: '#666',
