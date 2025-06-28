@@ -309,22 +309,22 @@ export default function DatabaseListView() {
         <View style={styles.debugSection}>
           <Text style={styles.debugTitle}>Debug Information</Text>
           <Text style={styles.debugText}>
-            • Supabase URL: {isSupabaseConfigured ? 'Configured' : 'Missing'}
+            <Text>• Supabase URL: {isSupabaseConfigured ? 'Configured' : 'Missing'}</Text>
           </Text>
           <Text style={styles.debugText}>
-            • Database Client: {supabase ? 'Initialized' : 'Not Initialized'}
+            <Text>• Database Client: {supabase ? 'Initialized' : 'Not Initialized'}</Text>
           </Text>
           <Text style={styles.debugText}>
-            • Query Method: Direct Table Query (RPC Disabled)
+            <Text>• Query Method: Direct Table Query (RPC Disabled)</Text>
           </Text>
           <Text style={styles.debugText}>
-            • Objects Retrieved: {objects.length}
+            <Text>• Objects Retrieved: {objects.length}</Text>
           </Text>
           <Text style={styles.debugText}>
-            • Active Objects: {objects.filter(obj => obj.is_active).length}
+            <Text>• Active Objects: {objects.filter(obj => obj.is_active).length}</Text>
           </Text>
           <Text style={styles.debugText}>
-            • Column Issue: updated_at column removed from query
+            <Text>• Column Issue: updated_at column removed from query</Text>
           </Text>
         </View>
       )}
