@@ -43,7 +43,7 @@ export default function DatabaseListView() {
 
       console.log('✅ Database connection successful');
       
-      // Fetch all objects with all columns
+      // Fetch all objects with ONLY existing columns (no updated_at)
       const { data, error } = await supabase
         .from('deployed_objects')
         .select(`
@@ -66,7 +66,6 @@ export default function DatabaseListView() {
           visibility_radius,
           is_active,
           created_at,
-          updated_at,
           preciselatitude,
           preciselongitude,
           precisealtitude,
@@ -86,6 +85,8 @@ export default function DatabaseListView() {
       // Transform data to match our interface
       const transformedObjects: DeployedObject[] = (data || []).map(obj => ({
         id: obj.id,
+        user_id: obj.user_id || 'unknown',
+        object_type: obj.object_type || 'unknown',
         name: obj.name || 'Unnamed Object',
         description: obj.description || '',
         latitude: parseFloat(obj.latitude),
@@ -102,7 +103,13 @@ export default function DatabaseListView() {
         is_active: obj.is_active !== false,
         visibility_radius: parseInt(obj.visibility_radius || 100),
         created_at: obj.created_at || new Date().toISOString(),
-        updated_at: obj.updated_at || obj.created_at || new Date().toISOString(),
+        // Use created_at as updated_at since updated_at column doesn't exist
+        updated_at: obj.created_at || new Date().toISOString(),
+        preciselatitude: obj.preciselatitude ? parseFloat(obj.preciselatitude) : undefined,
+        preciselongitude: obj.preciselongitude ? parseFloat(obj.preciselongitude) : undefined,
+        precisealtitude: obj.precisealtitude ? parseFloat(obj.precisealtitude) : undefined,
+        accuracy: obj.accuracy ? parseFloat(obj.accuracy) : undefined,
+        correctionapplied: obj.correctionapplied || false,
       }));
       
       setObjects(transformedObjects);
@@ -245,6 +252,9 @@ export default function DatabaseListView() {
               Last Query: {formatDate(connectionStatus.lastQuery)}
             </Text>
           )}
+          <Text style={styles.statusDetail}>
+            Query Method: Direct Table Query (No updated_at column)
+          </Text>
         </View>
       </View>
 
@@ -313,6 +323,9 @@ export default function DatabaseListView() {
           <Text style={styles.debugText}>
             • Active Objects: {objects.filter(obj => obj.is_active).length}
           </Text>
+          <Text style={styles.debugText}>
+            • Column Issue: updated_at column removed from query
+          </Text>
         </View>
       )}
     </View>
@@ -379,7 +392,7 @@ function ObjectItem({
       <View style={styles.propertiesSection}>
         <View style={styles.propertyRow}>
           <Text style={styles.propertyLabel}>Model:</Text>
-          <Text style={styles.propertyValue}>{object.model_type.toUpperCase()}</Text>
+          <Text style={styles.propertyValue}>{object.model_type?.toUpperCase() || 'UNKNOWN'}</Text>
         </View>
         <View style={styles.propertyRow}>
           <Text style={styles.propertyLabel}>Scale:</Text>
@@ -420,7 +433,7 @@ function ObjectItem({
         <View style={styles.timestampRow}>
           <Clock size={10} color="#666" strokeWidth={2} />
           <Text style={styles.timestampText}>
-            Created: {new Date(object.created_at).toLocaleString()}
+            Created: {new Date(object.created_at || '').toLocaleString()}
           </Text>
         </View>
       </View>
