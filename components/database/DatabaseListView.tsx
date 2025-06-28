@@ -341,7 +341,16 @@ function ObjectItem({
   showDetails: boolean;
 }) {
   const formatCoordinate = (coord: number): string => {
+    if (coord === null || coord === undefined || isNaN(coord)) return 'N/A';
     return coord.toFixed(6);
+  };
+
+  const formatScale = (x: number, y: number, z: number): string => {
+    const formatValue = (val: number) => {
+      if (val === null || val === undefined || isNaN(val)) return '1';
+      return val.toString();
+    };
+    return `${formatValue(x)}×${formatValue(y)}×${formatValue(z)}`;
   };
 
   return (
@@ -397,7 +406,7 @@ function ObjectItem({
         <View style={styles.propertyRow}>
           <Text style={styles.propertyLabel}>Scale:</Text>
           <Text style={styles.propertyValue}>
-            {object.scale_x}×{object.scale_y}×{object.scale_z}
+            {formatScale(object.scale_x, object.scale_y, object.scale_z)}
           </Text>
         </View>
         <View style={styles.propertyRow}>
