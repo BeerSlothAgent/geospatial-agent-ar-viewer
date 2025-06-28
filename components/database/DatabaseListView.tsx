@@ -406,7 +406,7 @@ function ObjectItem({
         <View style={styles.propertyRow}>
           <Text style={styles.propertyLabel}>Scale:</Text>
           <Text style={styles.propertyValue}>
-            {formatScale(object.scale_x, object.scale_y, object.scale_z)}
+            {formatScale(object.scale_x || 1, object.scale_y || 1, object.scale_z || 1)}
           </Text>
         </View>
         <View style={styles.propertyRow}>
