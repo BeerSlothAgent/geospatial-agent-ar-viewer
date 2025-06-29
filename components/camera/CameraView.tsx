@@ -46,6 +46,7 @@ export default function ARCameraView({
   const [error, setError] = useState<string | null>(null);
   const [showARView, setShowARView] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [visibleARObjects, setVisibleARObjects] = useState<any[]>([]);
   
   const cameraRef = useRef<CameraView>(null);
   
@@ -86,6 +87,41 @@ export default function ARCameraView({
     });
   }, []);
 
+  // Process objects for AR display when they change
+  useEffect(() => {
+    if (objects && objects.length > 0 && userLocation && isCameraReady) {
+      console.log('🎯 Processing', objects.length, 'objects for AR display');
+      
+      // Filter nearby objects (within 1km for AR display)
+      const nearbyObjects = objects.filter(obj => {
+        const distance = obj.distance_meters || 0;
+        return distance <= 1000; // 1km radius for AR
+      });
+
+      console.log('🎯 Found', nearbyObjects.length, 'nearby objects for AR');
+      
+      // Transform objects for AR positioning
+      const arObjects = nearbyObjects.map((obj, index) => {
+        // Simple positioning logic - distribute objects across screen
+        const x = (index % 3) * (screenWidth / 3) + 50; // 3 columns
+        const y = Math.floor(index / 3) * 150 + 200; // Rows with spacing
+        
+        return {
+          id: obj.id,
+          name: obj.name || 'Unnamed Object',
+          x: Math.min(x, screenWidth - 100), // Keep within screen bounds
+          y: Math.min(y, screenHeight - 100),
+          distance: obj.distance_meters ? obj.distance_meters / 1000 : 0, // Convert to km
+          type: obj.object_type || 'sphere',
+          modelType: obj.model_type || 'gltf'
+        };
+      });
+
+      setVisibleARObjects(arObjects);
+      console.log('🎯 AR objects positioned:', arObjects);
+    }
+  }, [objects, userLocation, isCameraReady, screenWidth, screenHeight]);
+
   const fadeStyle = useAnimatedStyle(() => ({
     opacity: fadeAnim.value,
   }));
@@ -104,7 +140,7 @@ export default function ARCameraView({
     setError(null); // Clear any previous errors
     setRetryCount(0); // Reset retry count on success
     onCameraReady?.();
-    console.log('📷 Camera ready');
+    console.log('📷 Camera ready for AR overlay');
   };
 
   // Enhanced camera error handling
@@ -139,9 +175,9 @@ export default function ARCameraView({
     }
   };
 
-  // Start AR mode
-  const startARMode = () => {
-    console.log('🚀 Starting AR mode with:', {
+  // Start full AR mode with Three.js
+  const startFullARMode = () => {
+    console.log('🚀 Starting full AR mode with Three.js:', {
       objectsCount: objects.length,
       hasLocation: !!userLocation,
       locationCoords: userLocation ? `${userLocation.latitude.toFixed(6)}, ${userLocation.longitude.toFixed(6)}` : 'none'
@@ -385,9 +421,10 @@ export default function ARCameraView({
     );
   }
 
-  // Main camera view
+  // Main camera view with AR overlay
   return (
     <View style={styles.container}>
+      {/* Camera View - NO CHILDREN INSIDE */}
       <CameraView
         ref={cameraRef}
         style={styles.camera}
@@ -395,31 +432,65 @@ export default function ARCameraView({
         onCameraReady={handleCameraReady}
         onMountError={handleCameraError}
         flash={isFlashOn ? 'on' : 'off'}
-      >
-        {/* AR Overlay UI */}
-        <Animated.View style={[styles.overlay, fadeStyle]}>
-          {/* Top Controls */}
-          <View style={styles.topControls}>
+      />
+
+      {/* AR Objects Overlay - ABSOLUTELY POSITIONED ON TOP */}
+      {isCameraReady && (
+        <View style={styles.arOverlay}>
+          {/* AR Objects */}
+          {visibleARObjects.map((obj) => (
             <TouchableOpacity
-              style={styles.controlButton}
-              onPress={onClose}
-              activeOpacity={0.7}
+              key={obj.id}
+              style={[
+                styles.arObject,
+                {
+                  left: obj.x,
+                  top: obj.y,
+                }
+              ]}
+              onPress={() => {
+                console.log('🎯 AR Object tapped:', obj.name);
+                Alert.alert('AR Object', `Interacting with ${obj.name}\nDistance: ${obj.distance.toFixed(2)}km`);
+              }}
+              activeOpacity={0.8}
             >
-              <X size={24} color="#fff" strokeWidth={2} />
+              {/* AR Object Visual */}
+              <View style={styles.arObjectVisual}>
+                <Text style={styles.arObjectIcon}>
+                  {obj.type === 'sphere' ? '⚪' : 
+                   obj.type === 'cube' || obj.type === 'test-object' ? '🔲' : 
+                   obj.type === 'cylinder' ? '🔘' : '📍'}
+                </Text>
+              </View>
+              
+              {/* AR Object Label */}
+              <View style={styles.arObjectLabel}>
+                <Text style={styles.arObjectName}>{obj.name}</Text>
+                {obj.distance > 0 && (
+                  <Text style={styles.arObjectDistance}>
+                    {obj.distance.toFixed(2)}km
+                  </Text>
+                )}
+                <Text style={styles.arObjectType}>
+                  {obj.modelType.toUpperCase()}
+                </Text>
+              </View>
             </TouchableOpacity>
-            
-            <View style={styles.statusIndicator}>
-              <Animated.View style={[styles.statusDot, pulseStyle]} />
-              <Text style={styles.statusText}>Camera Ready</Text>
-            </View>
-            
-            <TouchableOpacity
-              style={styles.controlButton}
-              onPress={() => {/* TODO: Open AR settings */}}
-              activeOpacity={0.7}
-            >
-              <Settings size={24} color="#fff" strokeWidth={2} />
-            </TouchableOpacity>
+          ))}
+          
+          {/* AR Status Info */}
+          <View style={styles.arStatus}>
+            <Text style={styles.arStatusText}>
+              AR Objects: {visibleARObjects.length}
+            </Text>
+            {userLocation && (
+              <Text style={styles.arStatusText}>
+                Location: {userLocation.latitude.toFixed(4)}, {userLocation.longitude.toFixed(4)}
+              </Text>
+            )}
+            <Text style={styles.arStatusText}>
+              Camera: {facing} • Ready for AR
+            </Text>
           </View>
 
           {/* AR Scanning Line */}
@@ -430,73 +501,111 @@ export default function ARCameraView({
             <View style={styles.crosshairLine} />
             <View style={[styles.crosshairLine, styles.crosshairLineVertical]} />
           </View>
+        </View>
+      )}
 
-          {/* AR Mode Button */}
-          <View style={styles.arModeContainer}>
-            <TouchableOpacity
-              style={styles.arModeButton}
-              onPress={startARMode}
-              activeOpacity={0.8}
-            >
-              <Animated.View style={pulseStyle}>
-                <Cube size={24} color="#000" strokeWidth={2} />
-              </Animated.View>
-              <Text style={styles.arModeButtonText}>Start AR Mode</Text>
-            </TouchableOpacity>
-            
-            <Text style={styles.objectsAvailable}>
-              {objects.length > 0 
-                ? `${objects.length} AR object${objects.length !== 1 ? 's' : ''} available`
-                : 'Demo objects available for testing'
+      {/* AR Overlay UI */}
+      <Animated.View style={[styles.overlay, fadeStyle]}>
+        {/* Top Controls */}
+        <View style={styles.topControls}>
+          <TouchableOpacity
+            style={styles.controlButton}
+            onPress={onClose}
+            activeOpacity={0.7}
+          >
+            <X size={24} color="#fff" strokeWidth={2} />
+          </TouchableOpacity>
+          
+          <View style={styles.statusIndicator}>
+            <Animated.View style={[styles.statusDot, pulseStyle]} />
+            <Text style={styles.statusText}>AR Ready</Text>
+          </View>
+          
+          <TouchableOpacity
+            style={styles.controlButton}
+            onPress={() => {/* TODO: Open AR settings */}}
+            activeOpacity={0.7}
+          >
+            <Settings size={24} color="#fff" strokeWidth={2} />
+          </TouchableOpacity>
+        </View>
+
+        {/* AR Mode Button */}
+        <View style={styles.arModeContainer}>
+          <TouchableOpacity
+            style={styles.arModeButton}
+            onPress={startFullARMode}
+            activeOpacity={0.8}
+          >
+            <Animated.View style={pulseStyle}>
+              <Cube size={24} color="#000" strokeWidth={2} />
+            </Animated.View>
+            <Text style={styles.arModeButtonText}>Full AR Mode</Text>
+          </TouchableOpacity>
+          
+          <Text style={styles.objectsAvailable}>
+            {objects.length > 0 
+              ? `${objects.length} AR object${objects.length !== 1 ? 's' : ''} available`
+              : 'Demo objects available for testing'
+            }
+          </Text>
+        </View>
+
+        {/* Bottom Controls */}
+        <View style={styles.bottomControls}>
+          <TouchableOpacity
+            style={styles.controlButton}
+            onPress={toggleFlash}
+            activeOpacity={0.7}
+            disabled={Platform.OS === 'web'}
+          >
+            {isFlashOn ? (
+              <Zap size={24} color="#00d4ff" strokeWidth={2} />
+            ) : (
+              <ZapOff size={24} color="#fff" strokeWidth={2} />
+            )}
+          </TouchableOpacity>
+          
+          <View style={styles.arInfo}>
+            <Text style={styles.arInfoText}>AR Objects Overlaid on Camera</Text>
+            <Text style={styles.arInfoSubtext}>
+              {visibleARObjects.length > 0 
+                ? `${visibleARObjects.length} objects visible • Tap to interact`
+                : 'Move camera to find AR objects'
               }
             </Text>
           </View>
+          
+          <TouchableOpacity
+            style={styles.controlButton}
+            onPress={toggleCameraFacing}
+            activeOpacity={0.7}
+          >
+            <RotateCcw size={24} color="#fff" strokeWidth={2} />
+          </TouchableOpacity>
+        </View>
 
-          {/* Bottom Controls */}
-          <View style={styles.bottomControls}>
-            <TouchableOpacity
-              style={styles.controlButton}
-              onPress={toggleFlash}
-              activeOpacity={0.7}
-              disabled={Platform.OS === 'web'}
-            >
-              {isFlashOn ? (
-                <Zap size={24} color="#00d4ff" strokeWidth={2} />
-              ) : (
-                <ZapOff size={24} color="#fff" strokeWidth={2} />
-              )}
-            </TouchableOpacity>
-            
-            <View style={styles.arInfo}>
-              <Text style={styles.arInfoText}>Point camera at your surroundings</Text>
-              <Text style={styles.arInfoSubtext}>
-                {objects.length > 0 
-                  ? 'AR objects will appear when AR mode is active'
-                  : 'Demo objects will be shown for testing'
-                }
-              </Text>
-            </View>
-            
-            <TouchableOpacity
-              style={styles.controlButton}
-              onPress={toggleCameraFacing}
-              activeOpacity={0.7}
-            >
-              <RotateCcw size={24} color="#fff" strokeWidth={2} />
-            </TouchableOpacity>
-          </View>
+        {/* AR Object Indicators */}
+        <View style={styles.arIndicators}>
+          <Animated.View style={[styles.arIndicator, pulseStyle]}>
+            <Text style={styles.arIndicatorText}>{visibleARObjects.length}</Text>
+            <Text style={styles.arIndicatorLabel}>Visible</Text>
+          </Animated.View>
+        </View>
+      </Animated.View>
 
-          {/* AR Object Indicators */}
-          <View style={styles.arIndicators}>
-            <Animated.View style={[styles.arIndicator, pulseStyle]}>
-              <Text style={styles.arIndicatorText}>{objects.length || 'Demo'}</Text>
-              <Text style={styles.arIndicatorLabel}>Objects</Text>
-            </Animated.View>
-          </View>
-        </Animated.View>
-      </CameraView>
+      {/* Loading State */}
+      {!isCameraReady && (
+        <View style={styles.loadingOverlay}>
+          <LoadingSpinner size={48} />
+          <Text style={styles.loadingText}>Initializing AR Camera...</Text>
+          <Text style={styles.loadingSubtext}>
+            Preparing to overlay {objects.length} AR objects
+          </Text>
+        </View>
+      )}
 
-      {/* AR View Modal */}
+      {/* Full AR View Modal with Three.js */}
       <Modal
         visible={showARView}
         animationType="slide"
@@ -518,7 +627,7 @@ export default function ARCameraView({
         <TouchableOpacity
           style={styles.arCloseButton}
           onPress={() => {
-            console.log('🔚 Closing AR view');
+            console.log('🔚 Closing full AR view');
             setShowARView(false);
           }}
           activeOpacity={0.7}
@@ -527,6 +636,29 @@ export default function ARCameraView({
         </TouchableOpacity>
       </Modal>
     </View>
+  );
+}
+
+// Loading Spinner Component
+function LoadingSpinner({ size }: { size: number }) {
+  const rotation = useSharedValue(0);
+
+  useEffect(() => {
+    rotation.value = withRepeat(
+      withTiming(360, { duration: 1000 }),
+      -1,
+      false
+    );
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }],
+  }));
+
+  return (
+    <Animated.View style={animatedStyle}>
+      <RefreshCw size={size} color="#00d4ff" strokeWidth={2} />
+    </Animated.View>
   );
 }
 
@@ -683,10 +815,97 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   
+  // AR Overlay (positioned absolutely on top of camera)
+  arOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    pointerEvents: 'box-none', // Allow touches on children but not background
+  },
+  
+  // AR Objects
+  arObject: {
+    position: 'absolute',
+    alignItems: 'center',
+  },
+  arObjectVisual: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(0, 212, 255, 0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+  },
+  arObjectIcon: {
+    fontSize: 24,
+    color: 'white',
+  },
+  arObjectLabel: {
+    marginTop: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    minWidth: 100,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 212, 255, 0.5)',
+  },
+  arObjectName: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  arObjectDistance: {
+    color: '#00d4ff',
+    fontSize: 10,
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  arObjectType: {
+    color: '#aaa',
+    fontSize: 9,
+    textAlign: 'center',
+    marginTop: 1,
+  },
+  
+  // AR Status
+  arStatus: {
+    position: 'absolute',
+    top: 120,
+    left: 16,
+    right: 16,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 212, 255, 0.3)',
+  },
+  arStatusText: {
+    color: 'white',
+    fontSize: 12,
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  
   // Overlay
   overlay: {
-    flex: 1,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: 'transparent',
+    pointerEvents: 'box-none',
   },
   
   // Controls
@@ -697,6 +916,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 20,
+    pointerEvents: 'auto',
   },
   bottomControls: {
     flexDirection: 'row',
@@ -704,6 +924,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 40,
+    pointerEvents: 'auto',
   },
   controlButton: {
     width: 48,
@@ -760,7 +981,7 @@ const styles = StyleSheet.create({
     right: 0,
     height: 2,
     backgroundColor: '#00d4ff',
-    opacity: 0.8,
+    opacity: 0.6,
   },
   crosshair: {
     position: 'absolute',
@@ -796,6 +1017,7 @@ const styles = StyleSheet.create({
     left: '50%',
     transform: [{ translateX: -80 }],
     alignItems: 'center',
+    pointerEvents: 'auto',
   },
   arModeButton: {
     flexDirection: 'row',
@@ -846,6 +1068,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 120,
     right: 20,
+    pointerEvents: 'none',
   },
   arIndicator: {
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
@@ -864,6 +1087,24 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#fff',
     marginTop: 2,
+  },
+
+  // Loading Overlay
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingSubtext: {
+    fontSize: 14,
+    color: '#aaa',
+    marginTop: 8,
+    textAlign: 'center',
   },
 
   // AR Close Button
