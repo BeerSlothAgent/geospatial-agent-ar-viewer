@@ -11,7 +11,7 @@ import {
   Modal,
   Alert,
 } from 'react-native';
-import { Camera, MapPin, Zap, Globe, ArrowRight, Play, CircleCheck as CheckCircle, Smartphone, Monitor, Tablet, Navigation, Database } from 'lucide-react-native';
+import { Camera, MapPin, Zap, Globe, ArrowRight, Play, CircleCheck as CheckCircle, Smartphone, Monitor, Tablet, Navigation, Database, MessageCircle, Mic, Users } from 'lucide-react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -128,22 +128,22 @@ export default function HomePage() {
         // Step 3: Initialize database connection
         if (isMounted.current) {
           setInitializationStep(3);
-          console.log('🗄️ Initializing database connection...');
+          console.log('🗄️ Initializing agent network connection...');
           
           try {
             await refreshDatabaseConnection();
           } catch (error) {
-            console.warn('Database initialization failed:', error);
+            console.warn('Agent network initialization failed:', error);
             // Continue anyway - we have mock data fallback
           }
         }
 
         await new Promise(resolve => setTimeout(resolve, 800));
 
-        // Step 4: Load initial objects
+        // Step 4: Load initial agents
         if (isMounted.current) {
           setInitializationStep(4);
-          console.log('🎯 Loading initial AR objects...');
+          console.log('🤖 Loading nearby GeoAgents...');
           await loadNearbyObjects();
         }
 
@@ -154,7 +154,7 @@ export default function HomePage() {
           setInitializationStep(5);
           setIsReady(true);
           setSystemReady(true);
-          console.log('✅ App initialization complete!');
+          console.log('✅ Agent world initialization complete!');
         }
 
       } catch (error) {
@@ -186,7 +186,7 @@ export default function HomePage() {
     if (!isMounted.current) return;
 
     try {
-      console.log('🔍 Loading nearby objects for location:', {
+      console.log('🔍 Loading nearby GeoAgents for location:', {
         lat: location?.latitude?.toFixed(6) || 'unknown',
         lng: location?.longitude?.toFixed(6) || 'unknown',
         supabaseConfigured: isSupabaseConfigured,
@@ -202,7 +202,7 @@ export default function HomePage() {
       
       if (isMounted.current) {
         setNearbyObjects(objects);
-        console.log(`📍 Loaded ${objects.length} nearby objects:`, objects.map(obj => ({
+        console.log(`📍 Loaded ${objects.length} nearby GeoAgents:`, objects.map(obj => ({
           id: obj.id,
           name: obj.name,
           distance: obj.distance_meters,
@@ -210,14 +210,14 @@ export default function HomePage() {
         })));
       }
     } catch (error) {
-      console.error('❌ Failed to load nearby objects:', error);
-      // Set some default mock objects so AR mode can still work
+      console.error('❌ Failed to load nearby GeoAgents:', error);
+      // Set some default mock agents so AR mode can still work
       if (isMounted.current) {
         setNearbyObjects([
           {
-            id: 'demo-1',
-            name: 'Demo AR Object',
-            description: 'Demo object for testing',
+            id: 'demo-agent-1',
+            name: 'Demo AI Assistant',
+            description: 'Helpful AI agent for demonstrations',
             latitude: location?.latitude || 37.7749,
             longitude: location?.longitude || -122.4194,
             altitude: 10,
@@ -256,13 +256,13 @@ export default function HomePage() {
   const handleStartAR = () => {
     if (!isMounted.current) return;
     
-    console.log('🚀 Starting AR experience with', nearbyObjects.length, 'objects');
+    console.log('🚀 Starting Agent AR experience with', nearbyObjects.length, 'agents');
     
     // Always allow AR mode if system is ready - don't require perfect conditions
     if (!systemReady) {
       Alert.alert(
-        'System Initializing',
-        'Please wait for the system to finish initializing before starting AR mode.',
+        'Agent World Initializing',
+        'Please wait for the agent network to finish initializing before entering the agent world.',
         [{ text: 'OK' }]
       );
       return;
@@ -276,7 +276,7 @@ export default function HomePage() {
   const handleCameraReady = () => {
     if (!isMounted.current) return;
     setCameraStatus('ready');
-    console.log('📷 Camera ready for AR');
+    console.log('📷 Camera ready for Agent AR');
   };
 
   const handleCameraError = (error: string) => {
@@ -310,18 +310,18 @@ export default function HomePage() {
   };
 
   const handleObjectSelect = (object: DeployedObject) => {
-    console.log('🎯 Selected object:', object);
-    // TODO: Navigate to object details or start AR view with specific object
+    console.log('🤖 Selected GeoAgent:', object);
+    // TODO: Navigate to agent details or start AR view with specific agent
   };
 
   // System status calculation - more lenient for demo
   const getSystemStatus = () => {
     if (!systemReady) return 'initializing';
     
-    // For demo purposes, consider system ready if we have objects (even mock ones)
-    const hasObjects = nearbyObjects.length > 0;
+    // For demo purposes, consider system ready if we have agents (even mock ones)
+    const hasAgents = nearbyObjects.length > 0;
     
-    if (hasObjects) return 'ready';
+    if (hasAgents) return 'ready';
     return 'partial';
   };
 
@@ -329,16 +329,16 @@ export default function HomePage() {
 
   // Get initialization message
   const getInitializationMessage = () => {
-    if (systemReady && systemStatus === 'ready') return 'Start AR Experience';
-    if (systemReady && systemStatus === 'partial') return 'Start AR Experience (Demo Mode)';
+    if (systemReady && systemStatus === 'ready') return 'Enter Agent World';
+    if (systemReady && systemStatus === 'partial') return 'Enter Agent World (Demo Mode)';
     
     switch (initializationStep) {
       case 1: return 'Starting animations...';
       case 2: return 'Initializing location services...';
-      case 3: return 'Connecting to database...';
-      case 4: return 'Loading AR objects...';
-      case 5: return 'Finalizing setup...';
-      default: return 'System Initializing...';
+      case 3: return 'Connecting to agent network...';
+      case 4: return 'Loading nearby GeoAgents...';
+      case 5: return 'Finalizing agent world setup...';
+      default: return 'Agent World Initializing...';
     }
   };
 
@@ -351,7 +351,7 @@ export default function HomePage() {
     systemReady,
     initializationStep,
     location: location ? `${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}` : 'None',
-    objectsCount: nearbyObjects.length,
+    agentsCount: nearbyObjects.length,
     databaseConnected: isDatabaseConnected,
     supabaseConfigured: isSupabaseConfigured,
     hasLocationPermission,
@@ -379,12 +379,12 @@ export default function HomePage() {
             </View>
             
             <Text style={styles.heroTitle}>
-              Precise Geospatial{'\n'}
+              Intelligent GeoAgent{'\n'}
               <Text style={styles.heroTitleAccent}>AR Experience</Text>
             </Text>
             
             <Text style={styles.heroSubtitle}>
-              View 3D objects at exact real-world coordinates with millimeter precision using GEODNET-corrected GPS data
+              Chat, interact, and collaborate with AI agents positioned at precise real-world locations using GEODNET RTK precision
             </Text>
             
             <View style={styles.heroButtons}>
@@ -413,28 +413,28 @@ export default function HomePage() {
                 onPress={handleLearnMore}
                 activeOpacity={0.7}
               >
-                <Text style={styles.secondaryButtonText}>View System Status</Text>
+                <Text style={styles.secondaryButtonText}>View Agent Network Status</Text>
                 <ArrowRight size={16} color="#00d4ff" strokeWidth={2} />
               </TouchableOpacity>
             </View>
 
             {/* System Status Display */}
             <View style={styles.systemStatus}>
-              <Text style={styles.systemStatusTitle}>System Status</Text>
+              <Text style={styles.systemStatusTitle}>Agent Network Status</Text>
               <View style={styles.systemStatusItems}>
                 <StatusBadge 
                   status={hasLocationPermission && !!location ? 'success' : 'pending'} 
-                  text={`Location: ${location ? 'Active' : 'Demo Mode'}`}
+                  text={`RTK Precision: ${location ? 'Active' : 'Demo Mode'}`}
                   size="small"
                 />
                 <StatusBadge 
                   status={isSupabaseConfigured ? (isDatabaseConnected ? 'success' : 'pending') : 'pending'} 
-                  text={`Database: ${isSupabaseConfigured ? (isDatabaseConnected ? 'Connected' : 'Demo Mode') : 'Demo Mode'}`}
+                  text={`Agent Network: ${isSupabaseConfigured ? (isDatabaseConnected ? 'Connected' : 'Demo Mode') : 'Demo Mode'}`}
                   size="small"
                 />
                 <StatusBadge 
                   status={nearbyObjects.length > 0 ? 'success' : 'pending'} 
-                  text={`Objects: ${nearbyObjects.length} available`}
+                  text={`Active GeoAgents: ${nearbyObjects.length}`}
                   size="small"
                 />
               </View>
@@ -444,7 +444,7 @@ export default function HomePage() {
 
         {/* Location Services Section */}
         <View style={styles.locationSection}>
-          <Text style={styles.sectionTitle}>Location Services</Text>
+          <Text style={styles.sectionTitle}>RTK Precision Location</Text>
           
           <LocationDisplay
             location={location}
@@ -474,15 +474,15 @@ export default function HomePage() {
               activeOpacity={0.7}
             >
               <Navigation size={16} color="#00d4ff" strokeWidth={2} />
-              <Text style={styles.expandButtonText}>View Precise Location Details</Text>
+              <Text style={styles.expandButtonText}>View RTK Precision Details</Text>
               <ArrowRight size={16} color="#00d4ff" strokeWidth={2} />
             </TouchableOpacity>
           )}
         </View>
 
-        {/* Database Section */}
+        {/* Agent Network Section */}
         <View style={styles.databaseSection}>
-          <Text style={styles.sectionTitle}>Database Connection</Text>
+          <Text style={styles.sectionTitle}>Agent Network Connection</Text>
           
           <DatabaseStatus
             state={{
@@ -515,7 +515,7 @@ export default function HomePage() {
               activeOpacity={0.7}
             >
               <Database size={16} color="#00d4ff" strokeWidth={2} />
-              <Text style={styles.expandButtonText}>View Database Details</Text>
+              <Text style={styles.expandButtonText}>View Agent Network Details</Text>
               <ArrowRight size={16} color="#00d4ff" strokeWidth={2} />
             </TouchableOpacity>
           )}
@@ -523,34 +523,34 @@ export default function HomePage() {
 
         {/* Features Section */}
         <View style={styles.featuresSection}>
-          <Text style={styles.sectionTitle}>Core Capabilities</Text>
+          <Text style={styles.sectionTitle}>Agent Interaction Capabilities</Text>
           
           <View style={styles.featuresGrid}>
             <FeatureCard
-              icon={<MapPin size={24} color="#00d4ff" strokeWidth={2} />}
-              title="Precise Location"
-              description="GEODNET-corrected coordinates for millimeter accuracy"
+              icon={<MessageCircle size={24} color="#00d4ff" strokeWidth={2} />}
+              title="Chat with Agents"
+              description="Text-based conversations with AI agents at precise locations"
               delay={0}
             />
             
             <FeatureCard
-              icon={<Camera size={24} color="#00d4ff" strokeWidth={2} />}
-              title="Live Camera Feed"
-              description="Real-time camera integration with AR overlay"
+              icon={<Mic size={24} color="#00d4ff" strokeWidth={2} />}
+              title="Voice Interaction"
+              description="Natural voice conversations with intelligent GeoAgents"
               delay={200}
             />
             
             <FeatureCard
-              icon={<Globe size={24} color="#00d4ff" strokeWidth={2} />}
-              title="3D Object Rendering"
-              description="Render GLTF models at exact geospatial coordinates"
+              icon={<MapPin size={24} color="#00d4ff" strokeWidth={2} />}
+              title="RTK Precision"
+              description="GEODNET-corrected coordinates for millimeter accuracy"
               delay={400}
             />
             
             <FeatureCard
-              icon={<Zap size={24} color="#00d4ff" strokeWidth={2} />}
-              title="High Performance"
-              description="Optimized for smooth 60fps AR experience"
+              icon={<Users size={24} color="#00d4ff" strokeWidth={2} />}
+              title="Agent Community"
+              description="Discover agents with unique personalities and skills"
               delay={600}
             />
           </View>
@@ -558,7 +558,7 @@ export default function HomePage() {
 
         {/* Demo Section */}
         <View style={styles.demoSection}>
-          <Text style={styles.sectionTitle}>See It In Action</Text>
+          <Text style={styles.sectionTitle}>Experience Agent Reality</Text>
           
           <View style={styles.demoContainer}>
             <Image
@@ -579,9 +579,9 @@ export default function HomePage() {
             </View>
             
             <View style={styles.demoInfo}>
-              <Text style={styles.demoTitle}>AR Camera Integration Demo</Text>
+              <Text style={styles.demoTitle}>Interactive Agent AR Demo</Text>
               <Text style={styles.demoDescription}>
-                Experience live camera feed with AR overlay and object tracking capabilities
+                Experience live camera feed with intelligent AI agents positioned at exact real-world coordinates
               </Text>
             </View>
           </View>
@@ -620,26 +620,26 @@ export default function HomePage() {
           <View style={styles.statusCard}>
             <View style={styles.statusHeader}>
               <View style={[styles.statusIndicator, { backgroundColor: systemStatus === 'ready' ? '#00ff88' : systemStatus === 'partial' ? '#ff9500' : '#ff6b35' }]} />
-              <Text style={styles.statusTitle}>System Status</Text>
+              <Text style={styles.statusTitle}>Agent World Status</Text>
             </View>
             
             <View style={styles.statusItems}>
               <StatusItem label="Camera Access" status={true} />
               <StatusItem label="AR Framework" status={systemReady} />
-              <StatusItem label="Location Services" status={hasLocationPermission && !!location} />
-              <StatusItem label="Database Connection" status={isSupabaseConfigured ? isDatabaseConnected : true} />
-              <StatusItem label="AR Objects Available" status={nearbyObjects.length > 0} />
+              <StatusItem label="RTK Precision" status={hasLocationPermission && !!location} />
+              <StatusItem label="Agent Network" status={isSupabaseConfigured ? isDatabaseConnected : true} />
+              <StatusItem label="GeoAgents Available" status={nearbyObjects.length > 0} />
             </View>
             
             <View style={styles.statusBadges}>
               <StatusBadge 
                 status={systemStatus === 'ready' ? 'success' : systemStatus === 'partial' ? 'pending' : 'error'} 
-                text={systemStatus === 'ready' ? 'Ready for AR' : systemStatus === 'partial' ? 'Demo Mode Ready' : 'Initializing'} 
+                text={systemStatus === 'ready' ? 'Ready for Agents' : systemStatus === 'partial' ? 'Demo Mode Ready' : 'Initializing'} 
                 size="small"
               />
               <StatusBadge 
                 status="success" 
-                text="Phase 5: AR Implementation Complete" 
+                text="Phase 5: Agent AR Complete" 
                 size="small"
               />
             </View>
@@ -652,7 +652,7 @@ export default function HomePage() {
             Built for the AgentSphere ecosystem
           </Text>
           <Text style={styles.footerSubtext}>
-            Standalone AR Viewer • Version 1.0.0 • Phase 5 Complete
+            GeoAgent AR Viewer • Version 1.0.0 • Agent Reality Ready
           </Text>
         </View>
       </ScrollView>
