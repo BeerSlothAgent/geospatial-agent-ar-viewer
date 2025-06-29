@@ -1,10 +1,11 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { View, StyleSheet, Dimensions, Platform } from 'react-native';
+import { View, StyleSheet, Dimensions, Platform, Text } from 'react-native';
 import { useAR } from '@/hooks/useAR';
 import { DeployedObject } from '@/types/database';
 import { LocationData } from '@/hooks/useLocation';
 import AROverlay from './AROverlay';
 import ARControls from './ARControls';
+import LoadingSpinner from '@/components/ui/LoadingSpinner';
 
 interface ARViewProps {
   objects: DeployedObject[];
@@ -24,6 +25,9 @@ export default function ARView({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<View>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [initializationError, setInitializationError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const maxRetries = 3;
 
   const {
     sessionState,
@@ -41,42 +45,71 @@ export default function ARView({
 
   // Initialize AR session when component mounts
   useEffect(() => {
-    if (Platform.OS === 'web' && canvasRef.current && !isInitialized) {
+    if (Platform.OS === 'web' && canvasRef.current && !isInitialized && !sessionState.isLoading) {
       initializeAR();
     }
-  }, [isInitialized]);
+  }, [isInitialized, sessionState.isLoading]);
 
   // Load objects when they change or user location updates
   useEffect(() => {
-    if (sessionState.isActive && objects.length > 0 && userLocation) {
-      console.log(`Loading ${objects.length} AR objects at location:`, userLocation);
-      loadObjects(objects, userLocation);
+    if (sessionState.isActive && objects.length > 0 && userLocation && !sessionState.isLoading) {
+      console.log(`🔄 Loading ${objects.length} AR objects at location:`, {
+        lat: userLocation.latitude.toFixed(6),
+        lng: userLocation.longitude.toFixed(6),
+      });
+      
+      loadObjects(objects, userLocation).catch((error) => {
+        console.error('Failed to load objects in ARView:', error);
+      });
     }
-  }, [objects, userLocation, sessionState.isActive, loadObjects]);
+  }, [objects, userLocation, sessionState.isActive, sessionState.isLoading, loadObjects]);
 
-  // Handle errors
+  // Handle errors from AR session
   useEffect(() => {
     if (sessionState.error) {
       console.error('AR Session Error:', sessionState.error);
+      setInitializationError(sessionState.error);
       onError?.(sessionState.error);
     }
   }, [sessionState.error, onError]);
 
   const initializeAR = async () => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current) {
+      console.error('Canvas not available for AR initialization');
+      return;
+    }
 
     try {
-      console.log('Initializing AR session...');
+      console.log(`🚀 Initializing AR session (attempt ${retryCount + 1}/${maxRetries + 1})...`);
+      setInitializationError(null);
+      
       const success = await initializeSession(canvasRef.current);
       if (success) {
         setIsInitialized(true);
-        console.log('AR session initialized successfully');
+        setRetryCount(0);
+        console.log('✅ AR session initialized successfully');
       } else {
-        console.error('Failed to initialize AR session');
+        throw new Error('AR session initialization returned false');
       }
     } catch (error: any) {
-      console.error('Failed to initialize AR:', error);
-      onError?.(error.message || 'Failed to initialize AR');
+      const errorMessage = error.message || 'Failed to initialize AR';
+      console.error('❌ Failed to initialize AR:', errorMessage);
+      
+      setInitializationError(errorMessage);
+      
+      // Retry logic with exponential backoff
+      if (retryCount < maxRetries) {
+        const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+        console.log(`🔄 Retrying AR initialization in ${delay}ms...`);
+        
+        setTimeout(() => {
+          setRetryCount(prev => prev + 1);
+          initializeAR();
+        }, delay);
+      } else {
+        console.error(`❌ AR initialization failed after ${maxRetries + 1} attempts`);
+        onError?.(errorMessage);
+      }
     }
   };
 
@@ -98,7 +131,7 @@ export default function ARView({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      console.log('Cleaning up AR session');
+      console.log('🧹 Cleaning up AR View');
       endSession();
     };
   }, [endSession]);
@@ -108,25 +141,45 @@ export default function ARView({
     console.log('AR View State:', {
       isInitialized,
       sessionActive: sessionState.isActive,
+      sessionLoading: sessionState.isLoading,
+      sessionError: sessionState.error,
       objectsCount: objects.length,
       userLocation: userLocation ? `${userLocation.latitude}, ${userLocation.longitude}` : 'none',
       capabilities,
+      retryCount,
+      initializationError,
     });
-  }, [isInitialized, sessionState.isActive, objects.length, userLocation, capabilities]);
+  }, [
+    isInitialized, 
+    sessionState.isActive, 
+    sessionState.isLoading, 
+    sessionState.error,
+    objects.length, 
+    userLocation, 
+    capabilities,
+    retryCount,
+    initializationError
+  ]);
 
   if (Platform.OS !== 'web') {
     // For mobile platforms, we would use a different AR implementation
-    // For now, show a placeholder
+    // For now, show a placeholder with AR overlay
     return (
       <View style={styles.container}>
         <View style={styles.mobilePlaceholder}>
-          <AROverlay
-            sessionState={sessionState}
-            capabilities={capabilities}
-            objectsInView={[]}
-            onObjectSelect={onObjectSelect}
-          />
+          <Text style={styles.placeholderText}>
+            Mobile AR implementation coming soon
+          </Text>
+          <Text style={styles.placeholderSubtext}>
+            Currently optimized for web browsers
+          </Text>
         </View>
+        <AROverlay
+          sessionState={sessionState}
+          capabilities={capabilities}
+          objectsInView={[]}
+          onObjectSelect={onObjectSelect}
+        />
       </View>
     );
   }
@@ -157,6 +210,28 @@ export default function ARView({
           console.log('Toggle device orientation tracking');
         }}
       />
+
+      {/* Initialization Error Display */}
+      {initializationError && !sessionState.isLoading && (
+        <View style={styles.errorOverlay}>
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorTitle}>AR Initialization Failed</Text>
+            <Text style={styles.errorMessage}>{initializationError}</Text>
+            {retryCount < maxRetries ? (
+              <View style={styles.retryInfo}>
+                <LoadingSpinner size={20} />
+                <Text style={styles.retryText}>
+                  Retrying... (Attempt {retryCount + 1}/{maxRetries + 1})
+                </Text>
+              </View>
+            ) : (
+              <Text style={styles.finalErrorText}>
+                Please refresh the page to try again
+              </Text>
+            )}
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -179,5 +254,68 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a1a1a',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 40,
+  },
+  placeholderText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#fff',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  placeholderSubtext: {
+    fontSize: 16,
+    color: '#aaa',
+    textAlign: 'center',
+  },
+  errorOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorContainer: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 16,
+    padding: 24,
+    maxWidth: 400,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ff6b35',
+  },
+  errorTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#ff6b35',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  errorMessage: {
+    fontSize: 16,
+    color: '#fff',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 16,
+  },
+  retryInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  retryText: {
+    fontSize: 14,
+    color: '#00d4ff',
+    fontWeight: '600',
+  },
+  finalErrorText: {
+    fontSize: 14,
+    color: '#aaa',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
 });
