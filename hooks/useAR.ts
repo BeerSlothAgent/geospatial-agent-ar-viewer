@@ -225,7 +225,7 @@ export function useAR(options: UseAROptions = {}) {
         }));
       }
     }
-  }, [opts.renderDistance, opts.maxObjects]);
+  }, [opts.renderDistance, opts.maxObjects, sessionState.isActive]);
 
   // Get objects currently in camera view
   const getObjectsInView = useCallback((): string[] => {
