@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
-import { Wallet, ExternalLink, Copy, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Coins, RefreshCw } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, ScrollView } from 'react-native';
+import { 
+  Wallet, 
+  ExternalLink, 
+  Copy, 
+  CircleCheck as CheckCircle, 
+  CircleAlert as AlertCircle, 
+  Coins, 
+  RefreshCw,
+  Eye,
+  Download,
+  Globe,
+  Smartphone,
+  Monitor
+} from 'lucide-react-native';
 
 interface WalletState {
   isConnected: boolean;
@@ -8,6 +21,7 @@ interface WalletState {
   balance: number | null;
   isLoading: boolean;
   error: string | null;
+  isDemoMode: boolean;
 }
 
 // Declare global types for Algorand wallet providers
@@ -26,11 +40,14 @@ export default function LuteWalletConnect() {
     balance: null,
     isLoading: false,
     error: null,
+    isDemoMode: false,
   });
+
+  const [showWalletInfo, setShowWalletInfo] = useState(false);
+  const [walletProvider, setWalletProvider] = useState<any>(null);
 
   // Check if we're on web and if any Algorand wallet is available
   const isWeb = Platform.OS === 'web';
-  const [walletProvider, setWalletProvider] = useState<any>(null);
 
   useEffect(() => {
     if (isWeb && typeof window !== 'undefined') {
@@ -43,29 +60,23 @@ export default function LuteWalletConnect() {
     if (window.algorand) {
       console.log('✅ Found window.algorand provider');
       setWalletProvider(window.algorand);
-      return;
+      return true;
     }
     
     if (window.AlgoSigner) {
       console.log('✅ Found AlgoSigner provider');
       setWalletProvider(window.AlgoSigner);
-      return;
+      return true;
     }
     
     if (window.lute) {
       console.log('✅ Found Lute provider');
       setWalletProvider(window.lute);
-      return;
-    }
-
-    // Check if Lute is available via postMessage (some wallets use this method)
-    try {
-      window.postMessage({ type: 'LUTE_WALLET_CHECK' }, '*');
-    } catch (error) {
-      console.log('No postMessage support');
+      return true;
     }
 
     console.log('ℹ️ No Algorand wallet provider detected');
+    return false;
   };
 
   const connectWallet = async () => {
@@ -85,18 +96,12 @@ export default function LuteWalletConnect() {
 
       // Check if any wallet provider is available before attempting connection
       if (!walletProvider && !window.algorand && !window.AlgoSigner && !window.lute) {
-        // This is not an error, just no wallet installed - handle gracefully
+        // Handle gracefully without throwing error
         setWalletState(prev => ({
           ...prev,
           isLoading: false,
-          error: 'No Algorand wallet found. Please install Lute Wallet.',
+          error: 'No wallet detected',
         }));
-        
-        Alert.alert(
-          'No Wallet Found', 
-          'No Algorand wallet extension detected. Please install Lute Wallet or another compatible Algorand wallet extension and refresh the page.',
-          [{ text: 'OK' }]
-        );
         return;
       }
 
@@ -117,42 +122,6 @@ export default function LuteWalletConnect() {
         else if (typeof walletProvider.getAccounts === 'function') {
           accounts = await walletProvider.getAccounts();
         }
-      } else {
-        // Try to detect and connect to any available wallet
-        console.log('🔄 No provider detected, trying manual detection...');
-        
-        // Re-check for wallet availability
-        checkWalletAvailability();
-        
-        if (window.algorand) {
-          accounts = await window.algorand.enable();
-        } else if (window.AlgoSigner) {
-          await window.AlgoSigner.connect();
-          accounts = await window.AlgoSigner.accounts({ ledger: 'TestNet' });
-          accounts = accounts.map((acc: any) => acc.address);
-        } else if (window.lute) {
-          // Add specific handling for Lute wallet
-          if (typeof window.lute.enable === 'function') {
-            accounts = await window.lute.enable();
-          } else if (typeof window.lute.connect === 'function') {
-            const result = await window.lute.connect();
-            accounts = result.accounts || result;
-          }
-        } else {
-          // Handle gracefully without throwing error
-          setWalletState(prev => ({
-            ...prev,
-            isLoading: false,
-            error: 'No Algorand wallet found. Please install Lute Wallet.',
-          }));
-          
-          Alert.alert(
-            'No Wallet Found', 
-            'No Algorand wallet extension detected. Please install Lute Wallet or another compatible Algorand wallet extension and refresh the page.',
-            [{ text: 'OK' }]
-          );
-          return;
-        }
       }
 
       console.log('📋 Received accounts:', accounts);
@@ -165,6 +134,7 @@ export default function LuteWalletConnect() {
           isConnected: true,
           address: address,
           isLoading: false,
+          isDemoMode: false,
         }));
         
         await fetchBalance(address);
@@ -174,16 +144,16 @@ export default function LuteWalletConnect() {
         throw new Error('No accounts returned from wallet');
       }
     } catch (error: any) {
-      console.error('❌ Wallet connection error:', error);
+      console.log('ℹ️ Wallet connection attempt failed:', error.message);
       
-      let errorMessage = 'Failed to connect to wallet';
+      let errorMessage = 'Connection failed';
       
       if (error.message?.includes('User rejected') || error.message?.includes('denied')) {
         errorMessage = 'Connection was cancelled by user';
       } else if (error.message?.includes('not found') || error.message?.includes('No wallet')) {
-        errorMessage = 'No Algorand wallet found. Please install Lute Wallet.';
+        errorMessage = 'No wallet detected';
       } else if (error.message?.includes('enable')) {
-        errorMessage = 'Wallet connection method not supported. Try refreshing the page.';
+        errorMessage = 'Wallet connection method not supported';
       }
       
       setWalletState(prev => ({
@@ -191,15 +161,31 @@ export default function LuteWalletConnect() {
         isLoading: false,
         error: errorMessage,
       }));
-      
-      Alert.alert('Connection Failed', `${errorMessage}\n\nTroubleshooting:\n• Make sure Lute Wallet is installed\n• Try refreshing the page\n• Check if the wallet is unlocked`);
     }
+  };
+
+  const enableDemoMode = () => {
+    const demoAddress = 'DEMO7XAMPLE8WALLET9ADDRESS0ALGORAND1TESTNET2DEMO3EXAMPLE4ADDR';
+    const demoBalance = 1234.567890;
+    
+    setWalletState({
+      isConnected: true,
+      address: demoAddress,
+      balance: demoBalance,
+      isLoading: false,
+      error: null,
+      isDemoMode: true,
+    });
+    
+    Alert.alert(
+      'Demo Mode Enabled 🎭', 
+      'You\'re now viewing the app with a simulated wallet connection. This shows how the interface looks when a real wallet is connected.',
+      [{ text: 'Got it!' }]
+    );
   };
 
   const fetchBalance = async (address: string) => {
     try {
-      // For demo purposes, simulate fetching balance from Algorand TestNet
-      // In a real implementation, you would use algosdk to fetch from TestNet
       console.log('💰 Fetching balance for:', address);
       
       // Simulate API call delay
@@ -224,9 +210,10 @@ export default function LuteWalletConnect() {
       balance: null,
       isLoading: false,
       error: null,
+      isDemoMode: false,
     });
     
-    Alert.alert('Disconnected', 'Wallet disconnected successfully');
+    Alert.alert('Disconnected', walletState.isDemoMode ? 'Demo mode disabled' : 'Wallet disconnected successfully');
   };
 
   const copyAddress = () => {
@@ -245,12 +232,28 @@ export default function LuteWalletConnect() {
     }
   };
 
+  const openPeraWallet = () => {
+    const url = 'https://perawallet.app';
+    if (isWeb) {
+      window.open(url, '_blank');
+    }
+  };
+
+  const openDeflyWallet = () => {
+    const url = 'https://defly.app';
+    if (isWeb) {
+      window.open(url, '_blank');
+    }
+  };
+
   const openTestnetDispenser = () => {
-    if (walletState.address) {
+    if (walletState.address && !walletState.isDemoMode) {
       const url = `https://bank.testnet.algorand.network/?account=${walletState.address}`;
       if (isWeb) {
         window.open(url, '_blank');
       }
+    } else if (walletState.isDemoMode) {
+      Alert.alert('Demo Mode', 'This is a demo wallet. Connect a real wallet to access the TestNet dispenser.');
     }
   };
 
@@ -263,81 +266,89 @@ export default function LuteWalletConnect() {
   };
 
   const refreshWalletDetection = () => {
-    checkWalletAvailability();
+    const detected = checkWalletAvailability();
     setWalletState(prev => ({ ...prev, error: null }));
+    
+    if (detected) {
+      Alert.alert('Wallet Detected! 🎉', 'A wallet was found. You can now try connecting.');
+    } else {
+      Alert.alert('No Wallet Found', 'Still no wallet detected. Make sure you have installed a compatible Algorand wallet extension.');
+    }
   };
 
-  if (!walletState.isConnected) {
+  // Connected state (both real and demo)
+  if (walletState.isConnected) {
     return (
       <View style={styles.container}>
-        <View style={styles.connectCard}>
-          <View style={styles.walletIcon}>
-            <Wallet size={32} color="#9333ea" strokeWidth={2} />
+        <View style={styles.connectedCard}>
+          <View style={styles.connectedHeader}>
+            <View style={styles.statusIndicator}>
+              <CheckCircle size={16} color={walletState.isDemoMode ? "#f59e0b" : "#10b981"} strokeWidth={2} />
+              <Text style={[styles.statusText, { color: walletState.isDemoMode ? "#f59e0b" : "#10b981" }]}>
+                {walletState.isDemoMode ? 'Demo Mode' : 'Connected to TestNet'}
+              </Text>
+            </View>
+            
+            <TouchableOpacity onPress={disconnectWallet} style={styles.disconnectButton}>
+              <Text style={styles.disconnectText}>
+                {walletState.isDemoMode ? 'Exit Demo' : 'Disconnect'}
+              </Text>
+            </TouchableOpacity>
           </View>
           
-          <Text style={styles.connectTitle}>Connect Algorand Wallet</Text>
-          <Text style={styles.connectSubtitle}>
-            Connect your Lute Wallet or other Algorand wallet to interact with TestNet and manage your digital assets
-          </Text>
-          
-          {!isWeb && (
-            <View style={styles.platformWarning}>
-              <AlertCircle size={16} color="#f59e0b" strokeWidth={2} />
-              <Text style={styles.platformWarningText}>
-                Wallet connection requires a web browser
+          {walletState.isDemoMode && (
+            <View style={styles.demoNotice}>
+              <Eye size={16} color="#f59e0b" strokeWidth={2} />
+              <Text style={styles.demoNoticeText}>
+                This is a demo showing how the app looks with a connected wallet
               </Text>
             </View>
           )}
           
-          {isWeb && !walletProvider && (
-            <View style={styles.detectionInfo}>
-              <AlertCircle size={16} color="#3b82f6" strokeWidth={2} />
-              <Text style={styles.detectionText}>
-                No wallet detected. Install Lute Wallet and refresh this page.
+          <View style={styles.walletInfo}>
+            <Text style={styles.walletLabel}>Wallet Address</Text>
+            <TouchableOpacity style={styles.addressContainer} onPress={copyAddress}>
+              <Text style={styles.addressText}>{formatAddress(walletState.address!)}</Text>
+              <Copy size={16} color="#6b7280" strokeWidth={2} />
+            </TouchableOpacity>
+            <Text style={styles.fullAddress}>{walletState.address}</Text>
+          </View>
+          
+          {walletState.balance !== null && (
+            <View style={styles.balanceInfo}>
+              <Text style={styles.balanceLabel}>
+                {walletState.isDemoMode ? 'Demo Balance' : 'TestNet Balance'}
               </Text>
-              <TouchableOpacity onPress={refreshWalletDetection} style={styles.refreshButton}>
-                <RefreshCw size={14} color="#3b82f6" strokeWidth={2} />
-                <Text style={styles.refreshText}>Refresh Detection</Text>
-              </TouchableOpacity>
+              <Text style={styles.balanceAmount}>{formatBalance(walletState.balance)} ALGO</Text>
+              <Text style={styles.balanceNote}>
+                ≈ ${(parseFloat(formatBalance(walletState.balance)) * 0.25).toFixed(2)} USD 
+                {walletState.isDemoMode ? ' (Demo)' : ' (TestNet)'}
+              </Text>
             </View>
           )}
           
-          {walletState.error && (
-            <View style={styles.errorContainer}>
-              <AlertCircle size={16} color="#ef4444" strokeWidth={2} />
-              <Text style={styles.errorText}>{walletState.error}</Text>
-            </View>
-          )}
+          <View style={styles.actionButtons}>
+            <TouchableOpacity 
+              style={[styles.actionButton, walletState.isDemoMode && styles.actionButtonDisabled]} 
+              onPress={openTestnetDispenser}
+              disabled={walletState.isDemoMode}
+            >
+              <Coins size={16} color={walletState.isDemoMode ? "#9ca3af" : "#9333ea"} strokeWidth={2} />
+              <Text style={[styles.actionButtonText, walletState.isDemoMode && styles.actionButtonTextDisabled]}>
+                Get TestNet ALGO
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.actionButton} onPress={openLuteWebsite}>
+              <ExternalLink size={16} color="#9333ea" strokeWidth={2} />
+              <Text style={styles.actionButtonText}>Open Lute</Text>
+            </TouchableOpacity>
+          </View>
           
-          <TouchableOpacity
-            style={[styles.connectButton, (walletState.isLoading || !isWeb) && styles.connectButtonDisabled]}
-            onPress={connectWallet}
-            disabled={walletState.isLoading || !isWeb}
-            activeOpacity={0.8}
-          >
-            {walletState.isLoading ? (
-              <RefreshCw size={20} color="#fff" strokeWidth={2} />
-            ) : (
-              <Wallet size={20} color="#fff" strokeWidth={2} />
-            )}
-            <Text style={styles.connectButtonText}>
-              {walletState.isLoading ? 'Connecting...' : 'Connect Wallet'}
-            </Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.installButton} onPress={openLuteWebsite}>
-            <ExternalLink size={16} color="#9333ea" strokeWidth={2} />
-            <Text style={styles.installButtonText}>Get Lute Wallet</Text>
-          </TouchableOpacity>
-          
-          <View style={styles.infoSection}>
-            <Text style={styles.infoTitle}>Setup Instructions</Text>
-            <Text style={styles.infoText}>
-              1. Install Lute Wallet browser extension{'\n'}
-              2. Create or import an Algorand wallet{'\n'}
-              3. Switch to TestNet in wallet settings{'\n'}
-              4. Refresh this page and click Connect{'\n'}
-              5. Get free TestNet ALGO from the dispenser
+          <View style={styles.networkInfo}>
+            <View style={[styles.networkDot, { backgroundColor: walletState.isDemoMode ? "#f59e0b" : "#f59e0b" }]} />
+            <Text style={styles.networkText}>
+              {walletState.isDemoMode ? 'Demo Mode' : 'Algorand TestNet'}
             </Text>
           </View>
         </View>
@@ -345,61 +356,165 @@ export default function LuteWalletConnect() {
     );
   }
 
+  // Disconnected state with enhanced UX
   return (
-    <View style={styles.container}>
-      <View style={styles.connectedCard}>
-        <View style={styles.connectedHeader}>
-          <View style={styles.statusIndicator}>
-            <CheckCircle size={16} color="#10b981" strokeWidth={2} />
-            <Text style={styles.statusText}>Connected to TestNet</Text>
+    <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <View style={styles.container}>
+        <View style={styles.connectCard}>
+          <View style={styles.walletIcon}>
+            <Wallet size={32} color="#9333ea" strokeWidth={2} />
           </View>
           
-          <TouchableOpacity onPress={disconnectWallet} style={styles.disconnectButton}>
-            <Text style={styles.disconnectText}>Disconnect</Text>
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.walletInfo}>
-          <Text style={styles.walletLabel}>Wallet Address</Text>
-          <TouchableOpacity style={styles.addressContainer} onPress={copyAddress}>
-            <Text style={styles.addressText}>{formatAddress(walletState.address!)}</Text>
-            <Copy size={16} color="#6b7280" strokeWidth={2} />
-          </TouchableOpacity>
-          <Text style={styles.fullAddress}>{walletState.address}</Text>
-        </View>
-        
-        {walletState.balance !== null && (
-          <View style={styles.balanceInfo}>
-            <Text style={styles.balanceLabel}>TestNet Balance</Text>
-            <Text style={styles.balanceAmount}>{formatBalance(walletState.balance)} ALGO</Text>
-            <Text style={styles.balanceNote}>
-              ≈ ${(parseFloat(formatBalance(walletState.balance)) * 0.25).toFixed(2)} USD (TestNet)
+          <Text style={styles.connectTitle}>Algorand Wallet</Text>
+          <Text style={styles.connectSubtitle}>
+            Connect your wallet to interact with Algorand TestNet and manage digital assets
+          </Text>
+          
+          {/* Platform Check */}
+          {!isWeb && (
+            <View style={styles.platformWarning}>
+              <AlertCircle size={16} color="#f59e0b" strokeWidth={2} />
+              <Text style={styles.platformWarningText}>
+                Wallet connection requires a web browser environment
+              </Text>
+            </View>
+          )}
+          
+          {/* Wallet Detection Status */}
+          {isWeb && (
+            <View style={styles.detectionStatus}>
+              {walletProvider ? (
+                <View style={styles.detectionSuccess}>
+                  <CheckCircle size={16} color="#10b981" strokeWidth={2} />
+                  <Text style={styles.detectionSuccessText}>Wallet extension detected!</Text>
+                </View>
+              ) : (
+                <View style={styles.detectionWarning}>
+                  <AlertCircle size={16} color="#f59e0b" strokeWidth={2} />
+                  <Text style={styles.detectionWarningText}>No wallet extension detected</Text>
+                  <TouchableOpacity onPress={refreshWalletDetection} style={styles.refreshButton}>
+                    <RefreshCw size={14} color="#f59e0b" strokeWidth={2} />
+                    <Text style={styles.refreshText}>Refresh</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
+          
+          {/* Error Display */}
+          {walletState.error && (
+            <View style={styles.errorContainer}>
+              <AlertCircle size={16} color="#ef4444" strokeWidth={2} />
+              <Text style={styles.errorText}>{walletState.error}</Text>
+            </View>
+          )}
+          
+          {/* Action Buttons */}
+          <View style={styles.buttonGroup}>
+            <TouchableOpacity
+              style={[styles.primaryButton, (walletState.isLoading || !isWeb) && styles.primaryButtonDisabled]}
+              onPress={connectWallet}
+              disabled={walletState.isLoading || !isWeb}
+              activeOpacity={0.8}
+            >
+              {walletState.isLoading ? (
+                <RefreshCw size={20} color="#fff" strokeWidth={2} />
+              ) : (
+                <Wallet size={20} color="#fff" strokeWidth={2} />
+              )}
+              <Text style={styles.primaryButtonText}>
+                {walletState.isLoading ? 'Connecting...' : 'Connect Wallet'}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.demoButton} onPress={enableDemoMode}>
+              <Eye size={20} color="#9333ea" strokeWidth={2} />
+              <Text style={styles.demoButtonText}>Try Demo Mode</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {/* Wallet Information Toggle */}
+          <TouchableOpacity 
+            style={styles.infoToggle} 
+            onPress={() => setShowWalletInfo(!showWalletInfo)}
+          >
+            <Text style={styles.infoToggleText}>
+              {showWalletInfo ? 'Hide' : 'Show'} Wallet Information
             </Text>
-          </View>
-        )}
-        
-        <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.actionButton} onPress={openTestnetDispenser}>
-            <Coins size={16} color="#9333ea" strokeWidth={2} />
-            <Text style={styles.actionButtonText}>Get TestNet ALGO</Text>
+            <ExternalLink size={14} color="#9333ea" strokeWidth={2} />
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.actionButton} onPress={openLuteWebsite}>
-            <ExternalLink size={16} color="#9333ea" strokeWidth={2} />
-            <Text style={styles.actionButtonText}>Open Lute</Text>
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.networkInfo}>
-          <View style={styles.networkDot} />
-          <Text style={styles.networkText}>Algorand TestNet</Text>
+          {/* Expandable Wallet Information */}
+          {showWalletInfo && (
+            <View style={styles.walletInfoSection}>
+              <Text style={styles.infoSectionTitle}>Supported Wallets</Text>
+              
+              <View style={styles.walletOptions}>
+                <TouchableOpacity style={styles.walletOption} onPress={openLuteWebsite}>
+                  <View style={styles.walletOptionIcon}>
+                    <Globe size={20} color="#9333ea" strokeWidth={2} />
+                  </View>
+                  <View style={styles.walletOptionContent}>
+                    <Text style={styles.walletOptionTitle}>Lute Wallet</Text>
+                    <Text style={styles.walletOptionDesc}>Web-based Algorand wallet</Text>
+                  </View>
+                  <ExternalLink size={16} color="#9333ea" strokeWidth={2} />
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.walletOption} onPress={openPeraWallet}>
+                  <View style={styles.walletOptionIcon}>
+                    <Smartphone size={20} color="#9333ea" strokeWidth={2} />
+                  </View>
+                  <View style={styles.walletOptionContent}>
+                    <Text style={styles.walletOptionTitle}>Pera Wallet</Text>
+                    <Text style={styles.walletOptionDesc}>Mobile & browser extension</Text>
+                  </View>
+                  <ExternalLink size={16} color="#9333ea" strokeWidth={2} />
+                </TouchableOpacity>
+                
+                <TouchableOpacity style={styles.walletOption} onPress={openDeflyWallet}>
+                  <View style={styles.walletOptionIcon}>
+                    <Monitor size={20} color="#9333ea" strokeWidth={2} />
+                  </View>
+                  <View style={styles.walletOptionContent}>
+                    <Text style={styles.walletOptionTitle}>Defly Wallet</Text>
+                    <Text style={styles.walletOptionDesc}>Desktop & mobile wallet</Text>
+                  </View>
+                  <ExternalLink size={16} color="#9333ea" strokeWidth={2} />
+                </TouchableOpacity>
+              </View>
+              
+              <View style={styles.setupInstructions}>
+                <Text style={styles.instructionsTitle}>Quick Setup</Text>
+                <View style={styles.instructionsList}>
+                  <Text style={styles.instructionItem}>1. Install a wallet extension</Text>
+                  <Text style={styles.instructionItem}>2. Create or import an account</Text>
+                  <Text style={styles.instructionItem}>3. Switch to TestNet</Text>
+                  <Text style={styles.instructionItem}>4. Refresh this page</Text>
+                  <Text style={styles.instructionItem}>5. Click "Connect Wallet"</Text>
+                </View>
+              </View>
+              
+              <View style={styles.demoExplanation}>
+                <Text style={styles.demoExplanationTitle}>Try Demo Mode</Text>
+                <Text style={styles.demoExplanationText}>
+                  Can't install a wallet right now? Use demo mode to explore the app's wallet features 
+                  with simulated data. This shows exactly how the interface works when a real wallet is connected.
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollContainer: {
+    flex: 1,
+  },
+  
   container: {
     alignItems: 'center',
     padding: 20,
@@ -413,7 +528,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#e5e7eb',
-    maxWidth: 400,
+    maxWidth: 450,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -464,17 +579,35 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   
-  detectionInfo: {
-    backgroundColor: '#dbeafe',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
+  detectionStatus: {
     alignSelf: 'stretch',
+    marginBottom: 16,
   },
   
-  detectionText: {
+  detectionSuccess: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#d1fae5',
+    borderRadius: 8,
+    padding: 12,
+    gap: 8,
+  },
+  
+  detectionSuccessText: {
     fontSize: 14,
-    color: '#1e40af',
+    color: '#065f46',
+    fontWeight: '500',
+  },
+  
+  detectionWarning: {
+    backgroundColor: '#fef3c7',
+    borderRadius: 8,
+    padding: 12,
+  },
+  
+  detectionWarningText: {
+    fontSize: 14,
+    color: '#92400e',
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -488,7 +621,7 @@ const styles = StyleSheet.create({
   
   refreshText: {
     fontSize: 12,
-    color: '#3b82f6',
+    color: '#f59e0b',
     fontWeight: '500',
   },
   
@@ -509,70 +642,164 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   
-  connectButton: {
+  buttonGroup: {
+    alignSelf: 'stretch',
+    gap: 12,
+    marginBottom: 20,
+  },
+  
+  primaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#9333ea',
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 12,
     gap: 8,
-    marginBottom: 12,
     shadowColor: '#9333ea',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
-    minWidth: 200,
   },
   
-  connectButtonDisabled: {
+  primaryButtonDisabled: {
     opacity: 0.6,
     backgroundColor: '#6b7280',
   },
   
-  connectButtonText: {
+  primaryButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
   
-  installButton: {
+  demoButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: 'transparent',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 2,
     borderColor: '#9333ea',
-    gap: 6,
-    marginBottom: 20,
+    gap: 8,
   },
   
-  installButtonText: {
+  demoButtonText: {
     color: '#9333ea',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  
+  infoToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 16,
+  },
+  
+  infoToggleText: {
     fontSize: 14,
+    color: '#9333ea',
     fontWeight: '500',
   },
   
-  infoSection: {
+  walletInfoSection: {
+    alignSelf: 'stretch',
     backgroundColor: '#f8fafc',
     borderRadius: 12,
     padding: 16,
-    alignSelf: 'stretch',
   },
   
-  infoTitle: {
+  infoSectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  
+  walletOptions: {
+    gap: 12,
+    marginBottom: 20,
+  },
+  
+  walletOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  
+  walletOptionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    backgroundColor: '#ede9fe',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  
+  walletOptionContent: {
+    flex: 1,
+  },
+  
+  walletOptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  
+  walletOptionDesc: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  
+  setupInstructions: {
+    marginBottom: 20,
+  },
+  
+  instructionsTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#374151',
+    marginBottom: 12,
+  },
+  
+  instructionsList: {
+    gap: 6,
+  },
+  
+  instructionItem: {
+    fontSize: 14,
+    color: '#6b7280',
+    lineHeight: 20,
+  },
+  
+  demoExplanation: {
+    backgroundColor: '#ede9fe',
+    borderRadius: 8,
+    padding: 12,
+  },
+  
+  demoExplanationTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#7c3aed',
     marginBottom: 8,
   },
   
-  infoText: {
+  demoExplanationText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#6d28d9',
     lineHeight: 20,
   },
   
@@ -608,7 +835,6 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#10b981',
   },
   
   disconnectButton: {
@@ -622,6 +848,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     color: '#6b7280',
+  },
+  
+  demoNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fef3c7',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    gap: 8,
+  },
+  
+  demoNoticeText: {
+    fontSize: 14,
+    color: '#92400e',
+    flex: 1,
+    fontWeight: '500',
   },
   
   walletInfo: {
@@ -707,10 +950,18 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   
+  actionButtonDisabled: {
+    opacity: 0.5,
+  },
+  
   actionButtonText: {
     fontSize: 12,
     fontWeight: '500',
     color: '#9333ea',
+  },
+  
+  actionButtonTextDisabled: {
+    color: '#9ca3af',
   },
   
   networkInfo: {
@@ -727,7 +978,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#f59e0b',
   },
   
   networkText: {
