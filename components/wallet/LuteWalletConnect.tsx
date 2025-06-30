@@ -65,7 +65,7 @@ export default function LuteWalletConnect() {
       console.log('No postMessage support');
     }
 
-    console.log('❌ No Algorand wallet provider found');
+    console.log('ℹ️ No Algorand wallet provider detected');
   };
 
   const connectWallet = async () => {
@@ -82,6 +82,23 @@ export default function LuteWalletConnect() {
 
     try {
       let accounts: string[] = [];
+
+      // Check if any wallet provider is available before attempting connection
+      if (!walletProvider && !window.algorand && !window.AlgoSigner && !window.lute) {
+        // This is not an error, just no wallet installed - handle gracefully
+        setWalletState(prev => ({
+          ...prev,
+          isLoading: false,
+          error: 'No Algorand wallet found. Please install Lute Wallet.',
+        }));
+        
+        Alert.alert(
+          'No Wallet Found', 
+          'No Algorand wallet extension detected. Please install Lute Wallet or another compatible Algorand wallet extension and refresh the page.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
 
       // Try different connection methods
       if (walletProvider) {
@@ -122,7 +139,19 @@ export default function LuteWalletConnect() {
             accounts = result.accounts || result;
           }
         } else {
-          throw new Error('No Algorand wallet found. Please install Lute Wallet or another Algorand wallet.');
+          // Handle gracefully without throwing error
+          setWalletState(prev => ({
+            ...prev,
+            isLoading: false,
+            error: 'No Algorand wallet found. Please install Lute Wallet.',
+          }));
+          
+          Alert.alert(
+            'No Wallet Found', 
+            'No Algorand wallet extension detected. Please install Lute Wallet or another compatible Algorand wallet extension and refresh the page.',
+            [{ text: 'OK' }]
+          );
+          return;
         }
       }
 
