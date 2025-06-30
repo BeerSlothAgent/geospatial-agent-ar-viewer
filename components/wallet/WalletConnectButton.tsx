@@ -1,21 +1,63 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, Platform } from 'react-native';
 import { useWallet } from '@txnlab/use-wallet-react';
-import { Wallet, ExternalLink, Copy, LogOut, Coins, RefreshCw } from 'lucide-react-native';
-import { formatAlgoAmount, formatAddress, getTestnetDispenserUrl, algodClient } from '@/lib/wallet';
+import { Wallet, ExternalLink, Copy, LogOut, Coins, RefreshCw, AlertCircle } from 'lucide-react-native';
+import { formatAlgoAmount, formatAddress, getTestnetDispenserUrl, algodClient, safeConnectWallet } from '@/lib/wallet';
 
 export default function WalletConnectButton() {
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
+  
+  // Safely use wallet hook with error handling
+  let walletState;
+  try {
+    walletState = useWallet();
+  } catch (error) {
+    console.error('Wallet hook error:', error);
+    walletState = {
+      wallets: [],
+      activeWallet: null,
+      activeAccount: null,
+      isActive: false,
+      isReady: false
+    };
+  }
+
   const { 
     wallets, 
     activeWallet, 
     activeAccount, 
     isActive, 
     isReady 
-  } = useWallet();
+  } = walletState;
   
   const [balance, setBalance] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+
+  // Initialize wallet system
+  useEffect(() => {
+    const initWallet = async () => {
+      try {
+        // Check if we're in a supported environment
+        if (Platform.OS === 'web' && typeof window === 'undefined') {
+          throw new Error('Web environment not ready');
+        }
+        
+        // Add a delay to ensure everything is loaded
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        setIsInitialized(true);
+        setInitError(null);
+      } catch (error) {
+        console.error('Wallet initialization error:', error);
+        setInitError(error instanceof Error ? error.message : 'Failed to initialize wallet');
+        setIsInitialized(true); // Still set to true to show error state
+      }
+    };
+
+    initWallet();
+  }, []);
 
   // Fetch account balance
   const fetchBalance = async () => {
@@ -35,33 +77,45 @@ export default function WalletConnectButton() {
 
   // Fetch balance when account changes
   useEffect(() => {
-    if (activeAccount) {
+    if (activeAccount && isInitialized) {
       fetchBalance();
     } else {
       setBalance(null);
     }
-  }, [activeAccount]);
+  }, [activeAccount, isInitialized]);
 
-  // Connect wallet
+  // Connect wallet with error handling
   const handleConnect = async () => {
     try {
+      setIsLoading(true);
+      
+      // Check if Lute wallet is available
       const luteWallet = wallets.find(wallet => wallet.id === 'lute');
       if (luteWallet) {
-        await luteWallet.connect();
+        await safeConnectWallet('lute');
       } else {
+        // Fallback: open Lute wallet website
         Alert.alert(
-          'Lute Wallet Not Found',
-          'Please make sure Lute Wallet is available in your browser.',
-          [{ text: 'OK' }]
+          'Lute Wallet Required',
+          'Lute Wallet is not available. Would you like to open the Lute Wallet website?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Open Lute', onPress: () => Linking.openURL('https://lute.app') }
+          ]
         );
       }
     } catch (error) {
       console.error('Connection error:', error);
       Alert.alert(
         'Connection Failed',
-        'Failed to connect to Lute Wallet. Please try again.',
-        [{ text: 'OK' }]
+        'Failed to connect to Lute Wallet. Please make sure Lute Wallet is installed and try again.',
+        [
+          { text: 'OK' },
+          { text: 'Open Lute', onPress: () => Linking.openURL('https://lute.app') }
+        ]
       );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -81,7 +135,7 @@ export default function WalletConnectButton() {
   const copyAddress = () => {
     if (activeAccount?.address) {
       // For web, we'll use the Clipboard API if available
-      if (navigator.clipboard) {
+      if (Platform.OS === 'web' && navigator.clipboard) {
         navigator.clipboard.writeText(activeAccount.address);
         Alert.alert('Copied!', 'Address copied to clipboard');
       } else {
@@ -103,7 +157,22 @@ export default function WalletConnectButton() {
     Linking.openURL('https://lute.app');
   };
 
-  if (!isReady) {
+  // Show initialization error
+  if (initError) {
+    return (
+      <View style={styles.errorContainer}>
+        <AlertCircle size={20} color="#ef4444" strokeWidth={2} />
+        <Text style={styles.errorText}>Wallet initialization failed</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={openLuteWallet}>
+          <ExternalLink size={16} color="#9333ea" strokeWidth={2} />
+          <Text style={styles.retryButtonText}>Open Lute Wallet</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // Show loading state
+  if (!isInitialized || (!isReady && !initError)) {
     return (
       <View style={styles.loadingContainer}>
         <RefreshCw size={20} color="#9333ea" />
@@ -112,12 +181,19 @@ export default function WalletConnectButton() {
     );
   }
 
+  // Show connect button if not connected
   if (!isActive || !activeAccount) {
     return (
       <View style={styles.container}>
-        <TouchableOpacity style={styles.connectButton} onPress={handleConnect}>
+        <TouchableOpacity 
+          style={styles.connectButton} 
+          onPress={handleConnect}
+          disabled={isLoading}
+        >
           <Wallet size={20} color="#fff" strokeWidth={2} />
-          <Text style={styles.connectButtonText}>Connect Lute Wallet</Text>
+          <Text style={styles.connectButtonText}>
+            {isLoading ? 'Connecting...' : 'Connect Lute Wallet'}
+          </Text>
         </TouchableOpacity>
         
         <TouchableOpacity style={styles.setupButton} onPress={openLuteWallet}>
@@ -128,6 +204,7 @@ export default function WalletConnectButton() {
     );
   }
 
+  // Show connected state
   return (
     <View style={styles.container}>
       <TouchableOpacity 
@@ -222,6 +299,37 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     gap: 12,
+  },
+  
+  // Error state
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#fef2f2',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#ef4444',
+    fontWeight: '500',
+    flex: 1,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  retryButtonText: {
+    fontSize: 12,
+    color: '#9333ea',
+    fontWeight: '500',
   },
   
   // Loading state
