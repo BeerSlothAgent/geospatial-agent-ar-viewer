@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Linking, Platform } from 'react-native';
 import { useWallet } from '@txnlab/use-wallet-react';
-import { Wallet, ExternalLink, Copy, LogOut, Coins, RefreshCw, AlertCircle } from 'lucide-react-native';
+import { Wallet, ExternalLink, Copy, LogOut, Coins, RefreshCw, CircleAlert as AlertCircle } from 'lucide-react-native';
 import { formatAlgoAmount, formatAddress, getTestnetDispenserUrl, algodClient, safeConnectWallet } from '@/lib/wallet';
 
 export default function WalletConnectButton() {
