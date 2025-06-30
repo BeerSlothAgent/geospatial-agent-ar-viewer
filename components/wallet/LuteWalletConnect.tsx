@@ -10,6 +10,15 @@ interface WalletState {
   error: string | null;
 }
 
+// Declare global types for Algorand wallet providers
+declare global {
+  interface Window {
+    algorand?: any;
+    AlgoSigner?: any;
+    lute?: any;
+  }
+}
+
 export default function LuteWalletConnect() {
   const [walletState, setWalletState] = useState<WalletState>({
     isConnected: false,
@@ -19,72 +28,52 @@ export default function LuteWalletConnect() {
     error: null,
   });
 
-  // Check if we're on web and if Lute wallet is available
+  // Check if we're on web and if any Algorand wallet is available
   const isWeb = Platform.OS === 'web';
-  const isLuteAvailable = isWeb && typeof window !== 'undefined' && (window as any).algorand;
+  const [walletProvider, setWalletProvider] = useState<any>(null);
 
   useEffect(() => {
-    if (isLuteAvailable) {
-      checkConnection();
+    if (isWeb && typeof window !== 'undefined') {
+      checkWalletAvailability();
     }
-  }, [isLuteAvailable]);
+  }, [isWeb]);
 
-  const checkConnection = async () => {
-    try {
-      if (!isLuteAvailable) return;
-      
-      // Check if already connected
-      const algorand = (window as any).algorand;
-      if (algorand && algorand.isConnected) {
-        const accounts = await algorand.getAccounts();
-        if (accounts && accounts.length > 0) {
-          setWalletState(prev => ({
-            ...prev,
-            isConnected: true,
-            address: accounts[0],
-          }));
-          
-          // Fetch balance
-          await fetchBalance(accounts[0]);
-        }
-      }
-    } catch (error) {
-      console.error('Error checking wallet connection:', error);
+  const checkWalletAvailability = () => {
+    // Check for various Algorand wallet providers
+    if (window.algorand) {
+      console.log('✅ Found window.algorand provider');
+      setWalletProvider(window.algorand);
+      return;
     }
-  };
+    
+    if (window.AlgoSigner) {
+      console.log('✅ Found AlgoSigner provider');
+      setWalletProvider(window.AlgoSigner);
+      return;
+    }
+    
+    if (window.lute) {
+      console.log('✅ Found Lute provider');
+      setWalletProvider(window.lute);
+      return;
+    }
 
-  const fetchBalance = async (address: string) => {
+    // Check if Lute is available via postMessage (some wallets use this method)
     try {
-      // For demo purposes, simulate fetching balance from Algorand TestNet
-      // In a real implementation, you would use algosdk to fetch from TestNet
-      const mockBalance = Math.random() * 1000;
-      setWalletState(prev => ({
-        ...prev,
-        balance: mockBalance,
-      }));
+      window.postMessage({ type: 'LUTE_WALLET_CHECK' }, '*');
     } catch (error) {
-      console.error('Error fetching balance:', error);
+      console.log('No postMessage support');
     }
+
+    console.log('❌ No Algorand wallet provider found');
   };
 
   const connectWallet = async () => {
     if (!isWeb) {
       Alert.alert(
         'Web Only Feature',
-        'Wallet connection is currently only available on web browsers. Please use a desktop or mobile browser to connect your Lute wallet.',
+        'Wallet connection is currently only available on web browsers. Please use a desktop or mobile browser to connect your wallet.',
         [{ text: 'OK' }]
-      );
-      return;
-    }
-
-    if (!isLuteAvailable) {
-      Alert.alert(
-        'Lute Wallet Not Found',
-        'Lute Wallet extension is not installed or not available. Please install the Lute Wallet browser extension.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Install Lute', onPress: openLuteWebsite },
-        ]
       );
       return;
     }
@@ -92,38 +81,72 @@ export default function LuteWalletConnect() {
     setWalletState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      const algorand = (window as any).algorand;
-      
-      if (!algorand) {
-        throw new Error('Algorand provider not found');
+      let accounts: string[] = [];
+
+      // Try different connection methods
+      if (walletProvider) {
+        console.log('🔄 Attempting to connect with detected provider...');
+        
+        // Method 1: Standard enable() method
+        if (typeof walletProvider.enable === 'function') {
+          accounts = await walletProvider.enable();
+        }
+        // Method 2: connect() method (some wallets use this)
+        else if (typeof walletProvider.connect === 'function') {
+          const result = await walletProvider.connect();
+          accounts = result.accounts || result;
+        }
+        // Method 3: getAccounts() method
+        else if (typeof walletProvider.getAccounts === 'function') {
+          accounts = await walletProvider.getAccounts();
+        }
+      } else {
+        // Try to detect and connect to any available wallet
+        console.log('🔄 No provider detected, trying manual detection...');
+        
+        // Re-check for wallet availability
+        checkWalletAvailability();
+        
+        if (window.algorand) {
+          accounts = await window.algorand.enable();
+        } else if (window.AlgoSigner) {
+          await window.AlgoSigner.connect();
+          accounts = await window.AlgoSigner.accounts({ ledger: 'TestNet' });
+          accounts = accounts.map((acc: any) => acc.address);
+        } else {
+          throw new Error('No Algorand wallet found. Please install Lute Wallet or another Algorand wallet.');
+        }
       }
 
-      // Request connection
-      const accounts = await algorand.enable();
-      
+      console.log('📋 Received accounts:', accounts);
+
       if (accounts && accounts.length > 0) {
+        const address = typeof accounts[0] === 'string' ? accounts[0] : accounts[0].address;
+        
         setWalletState(prev => ({
           ...prev,
           isConnected: true,
-          address: accounts[0],
+          address: address,
           isLoading: false,
         }));
         
-        await fetchBalance(accounts[0]);
+        await fetchBalance(address);
         
-        Alert.alert('Success! 🎉', 'Lute Wallet connected successfully!');
+        Alert.alert('Success! 🎉', `Wallet connected successfully!\n\nAddress: ${address.slice(0, 8)}...${address.slice(-6)}`);
       } else {
         throw new Error('No accounts returned from wallet');
       }
     } catch (error: any) {
-      console.error('Wallet connection error:', error);
+      console.error('❌ Wallet connection error:', error);
       
-      let errorMessage = 'Failed to connect to Lute wallet';
+      let errorMessage = 'Failed to connect to wallet';
       
-      if (error.message?.includes('User rejected')) {
+      if (error.message?.includes('User rejected') || error.message?.includes('denied')) {
         errorMessage = 'Connection was cancelled by user';
-      } else if (error.message?.includes('not found')) {
-        errorMessage = 'Lute Wallet not found. Please install the extension.';
+      } else if (error.message?.includes('not found') || error.message?.includes('No wallet')) {
+        errorMessage = 'No Algorand wallet found. Please install Lute Wallet.';
+      } else if (error.message?.includes('enable')) {
+        errorMessage = 'Wallet connection method not supported. Try refreshing the page.';
       }
       
       setWalletState(prev => ({
@@ -132,7 +155,28 @@ export default function LuteWalletConnect() {
         error: errorMessage,
       }));
       
-      Alert.alert('Connection Failed', errorMessage);
+      Alert.alert('Connection Failed', `${errorMessage}\n\nTroubleshooting:\n• Make sure Lute Wallet is installed\n• Try refreshing the page\n• Check if the wallet is unlocked`);
+    }
+  };
+
+  const fetchBalance = async (address: string) => {
+    try {
+      // For demo purposes, simulate fetching balance from Algorand TestNet
+      // In a real implementation, you would use algosdk to fetch from TestNet
+      console.log('💰 Fetching balance for:', address);
+      
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const mockBalance = Math.random() * 1000;
+      setWalletState(prev => ({
+        ...prev,
+        balance: mockBalance,
+      }));
+      
+      console.log('✅ Balance fetched:', mockBalance);
+    } catch (error) {
+      console.error('❌ Error fetching balance:', error);
     }
   };
 
@@ -181,6 +225,11 @@ export default function LuteWalletConnect() {
     return balance.toFixed(6);
   };
 
+  const refreshWalletDetection = () => {
+    checkWalletAvailability();
+    setWalletState(prev => ({ ...prev, error: null }));
+  };
+
   if (!walletState.isConnected) {
     return (
       <View style={styles.container}>
@@ -189,9 +238,9 @@ export default function LuteWalletConnect() {
             <Wallet size={32} color="#9333ea" strokeWidth={2} />
           </View>
           
-          <Text style={styles.connectTitle}>Connect Lute Wallet</Text>
+          <Text style={styles.connectTitle}>Connect Algorand Wallet</Text>
           <Text style={styles.connectSubtitle}>
-            Connect your Lute wallet to interact with Algorand TestNet and manage your digital assets
+            Connect your Lute Wallet or other Algorand wallet to interact with TestNet and manage your digital assets
           </Text>
           
           {!isWeb && (
@@ -200,6 +249,19 @@ export default function LuteWalletConnect() {
               <Text style={styles.platformWarningText}>
                 Wallet connection requires a web browser
               </Text>
+            </View>
+          )}
+          
+          {isWeb && !walletProvider && (
+            <View style={styles.detectionInfo}>
+              <AlertCircle size={16} color="#3b82f6" strokeWidth={2} />
+              <Text style={styles.detectionText}>
+                No wallet detected. Install Lute Wallet and refresh this page.
+              </Text>
+              <TouchableOpacity onPress={refreshWalletDetection} style={styles.refreshButton}>
+                <RefreshCw size={14} color="#3b82f6" strokeWidth={2} />
+                <Text style={styles.refreshText}>Refresh Detection</Text>
+              </TouchableOpacity>
             </View>
           )}
           
@@ -222,7 +284,7 @@ export default function LuteWalletConnect() {
               <Wallet size={20} color="#fff" strokeWidth={2} />
             )}
             <Text style={styles.connectButtonText}>
-              {walletState.isLoading ? 'Connecting...' : 'Connect Lute Wallet'}
+              {walletState.isLoading ? 'Connecting...' : 'Connect Wallet'}
             </Text>
           </TouchableOpacity>
           
@@ -232,12 +294,13 @@ export default function LuteWalletConnect() {
           </TouchableOpacity>
           
           <View style={styles.infoSection}>
-            <Text style={styles.infoTitle}>Why Lute Wallet?</Text>
+            <Text style={styles.infoTitle}>Setup Instructions</Text>
             <Text style={styles.infoText}>
-              • Web-based wallet - no installation required{'\n'}
-              • Easy TestNet/MainNet switching{'\n'}
-              • Perfect for dApp development{'\n'}
-              • Open source and secure
+              1. Install Lute Wallet browser extension{'\n'}
+              2. Create or import an Algorand wallet{'\n'}
+              3. Switch to TestNet in wallet settings{'\n'}
+              4. Refresh this page and click Connect{'\n'}
+              5. Get free TestNet ALGO from the dispenser
             </Text>
           </View>
         </View>
@@ -362,6 +425,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#92400e',
     flex: 1,
+  },
+  
+  detectionInfo: {
+    backgroundColor: '#dbeafe',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    alignSelf: 'stretch',
+  },
+  
+  detectionText: {
+    fontSize: 14,
+    color: '#1e40af',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  
+  refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+  },
+  
+  refreshText: {
+    fontSize: 12,
+    color: '#3b82f6',
+    fontWeight: '500',
   },
   
   errorContainer: {
