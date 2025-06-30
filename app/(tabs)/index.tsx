@@ -11,7 +11,7 @@ import {
   Modal,
   Alert,
 } from 'react-native';
-import { Camera, MapPin, Zap, Globe, ArrowRight, Play, CircleCheck as CheckCircle, Smartphone, Monitor, Tablet, Navigation, Database, MessageCircle, Mic, Users } from 'lucide-react-native';
+import { Camera, MapPin, Zap, Globe, ArrowRight, Play, CircleCheck as CheckCircle, Smartphone, Monitor, Tablet, Navigation, Database, MessageCircle, Mic, Users, Wallet } from 'lucide-react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -27,6 +27,7 @@ import LocationDisplay from '@/components/location/LocationDisplay';
 import PreciseLocationService from '@/components/location/PreciseLocationService';
 import DatabaseStatus from '@/components/database/DatabaseStatus';
 import ObjectsList from '@/components/database/ObjectsList';
+import LuteWalletConnect from '@/components/wallet/LuteWalletConnect';
 import { useLocation } from '@/hooks/useLocation';
 import { useDatabase } from '@/hooks/useDatabase';
 import { isSupabaseConfigured } from '@/lib/supabase';
@@ -41,6 +42,7 @@ export default function HomePage() {
   const [cameraStatus, setCameraStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
   const [showLocationDetails, setShowLocationDetails] = useState(false);
   const [showDatabaseDetails, setShowDatabaseDetails] = useState(false);
+  const [showWalletModal, setShowWalletModal] = useState(false);
   const [nearbyObjects, setNearbyObjects] = useState<DeployedObject[]>([]);
   const [initializationStep, setInitializationStep] = useState(0);
   const [systemReady, setSystemReady] = useState(false);
@@ -364,6 +366,25 @@ export default function HomePage() {
   return (
     <>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {/* Header with Wallet Button */}
+        <View style={styles.headerContainer}>
+          <View style={styles.headerContent}>
+            <View style={styles.headerLeft}>
+              <Text style={styles.headerTitle}>AR Viewer</Text>
+              <Text style={styles.headerSubtitle}>Agent Reality</Text>
+            </View>
+            
+            <TouchableOpacity
+              style={styles.walletButton}
+              onPress={() => setShowWalletModal(true)}
+              activeOpacity={0.8}
+            >
+              <Wallet size={20} color="#9333ea" strokeWidth={2} />
+              <Text style={styles.walletButtonText}>Wallet</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Hero Section */}
         <View style={styles.heroSection}>
           <Animated.View style={[styles.heroBackground, rotateStyle]}>
@@ -672,6 +693,31 @@ export default function HomePage() {
           userLocation={location}
         />
       </Modal>
+
+      {/* Wallet Modal */}
+      <Modal
+        visible={showWalletModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowWalletModal(false)}
+      >
+        <View style={styles.walletModalContainer}>
+          <View style={styles.walletModalHeader}>
+            <Text style={styles.walletModalTitle}>Algorand Wallet</Text>
+            <TouchableOpacity
+              style={styles.walletModalClose}
+              onPress={() => setShowWalletModal(false)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.walletModalCloseText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView style={styles.walletModalContent} showsVerticalScrollIndicator={false}>
+            <LuteWalletConnect />
+          </ScrollView>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -762,9 +808,91 @@ const styles = StyleSheet.create({
     backgroundColor: '#0a0a0a',
   },
   
+  // Header
+  headerContainer: {
+    backgroundColor: '#0a0a0a',
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1a1a1a',
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#fff',
+    marginBottom: 2,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#00d4ff',
+    fontWeight: '500',
+  },
+  walletButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1a1a1a',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#9333ea',
+    gap: 8,
+  },
+  walletButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#9333ea',
+  },
+  
+  // Wallet Modal
+  walletModalContainer: {
+    flex: 1,
+    backgroundColor: '#f9fafb',
+  },
+  walletModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    paddingTop: 60,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  walletModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  walletModalClose: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#9333ea',
+    borderRadius: 8,
+  },
+  walletModalCloseText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  walletModalContent: {
+    flex: 1,
+    backgroundColor: '#f9fafb',
+  },
+  
   // Hero Section
   heroSection: {
-    height: screenHeight * 0.85,
+    height: screenHeight * 0.75,
     position: 'relative',
     justifyContent: 'center',
     alignItems: 'center',
