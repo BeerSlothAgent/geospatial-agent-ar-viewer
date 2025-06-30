@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Wallet } from 'lucide-react-native';
+import LuteWalletConnect from '@/components/wallet/LuteWalletConnect';
+import LuteWalletGuide from '@/components/wallet/LuteWalletGuide';
 
 export default function WalletScreen() {
   return (
@@ -12,67 +14,21 @@ export default function WalletScreen() {
         </View>
         <Text style={styles.headerTitle}>Algorand Wallet</Text>
         <Text style={styles.headerSubtitle}>
-          Wallet functionality is temporarily disabled for preview compatibility
+          Connect your Lute Wallet to interact with Algorand TestNet
         </Text>
       </View>
 
-      {/* Info Section */}
-      <View style={styles.infoSection}>
-        <Text style={styles.infoTitle}>Wallet Integration</Text>
-        <Text style={styles.infoText}>
-          This app includes Algorand wallet integration with Lute Wallet support. 
-          The wallet functionality has been temporarily simplified to ensure the preview loads correctly.
-        </Text>
-        
-        <View style={styles.featuresList}>
-          <View style={styles.featureItem}>
-            <Text style={styles.featureBullet}>•</Text>
-            <Text style={styles.featureText}>Lute Wallet integration</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <Text style={styles.featureBullet}>•</Text>
-            <Text style={styles.featureText}>Algorand TestNet support</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <Text style={styles.featureBullet}>•</Text>
-            <Text style={styles.featureText}>Balance checking</Text>
-          </View>
-          <View style={styles.featureItem}>
-            <Text style={styles.featureBullet}>•</Text>
-            <Text style={styles.featureText}>Transaction support</Text>
-          </View>
+      {/* Wallet Connection */}
+      <View style={styles.walletSection}>
+        <Text style={styles.sectionTitle}>Wallet Connection</Text>
+        <View style={styles.walletContainer}>
+          <LuteWalletConnect />
         </View>
       </View>
 
-      {/* Setup Instructions */}
-      <View style={styles.setupSection}>
-        <Text style={styles.setupTitle}>Setup Instructions</Text>
-        <Text style={styles.setupText}>
-          To enable full wallet functionality:
-        </Text>
-        
-        <View style={styles.stepsList}>
-          <View style={styles.step}>
-            <View style={styles.stepNumber}>
-              <Text style={styles.stepNumberText}>1</Text>
-            </View>
-            <Text style={styles.stepText}>Install Lute Wallet browser extension</Text>
-          </View>
-          
-          <View style={styles.step}>
-            <View style={styles.stepNumber}>
-              <Text style={styles.stepNumberText}>2</Text>
-            </View>
-            <Text style={styles.stepText}>Configure for Algorand TestNet</Text>
-          </View>
-          
-          <View style={styles.step}>
-            <View style={styles.stepNumber}>
-              <Text style={styles.stepNumberText}>3</Text>
-            </View>
-            <Text style={styles.stepText}>Get TestNet ALGO from the dispenser</Text>
-          </View>
-        </View>
+      {/* Setup Guide */}
+      <View style={styles.guideSection}>
+        <LuteWalletGuide />
       </View>
     </ScrollView>
   );
@@ -115,92 +71,29 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   
-  // Info Section
-  infoSection: {
+  // Wallet Section
+  walletSection: {
     backgroundColor: '#fff',
     paddingVertical: 24,
     paddingHorizontal: 24,
     marginTop: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
   },
-  infoTitle: {
+  sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#111827',
-    marginBottom: 12,
+    marginBottom: 16,
+    textAlign: 'center',
   },
-  infoText: {
-    fontSize: 16,
-    color: '#6b7280',
-    lineHeight: 24,
-    marginBottom: 20,
-  },
-  
-  // Features List
-  featuresList: {
-    gap: 12,
-  },
-  featureItem: {
-    flexDirection: 'row',
+  walletContainer: {
     alignItems: 'center',
-    gap: 12,
-  },
-  featureBullet: {
-    fontSize: 16,
-    color: '#9333ea',
-    fontWeight: 'bold',
-  },
-  featureText: {
-    fontSize: 16,
-    color: '#374151',
-    flex: 1,
   },
   
-  // Setup Section
-  setupSection: {
+  // Guide Section
+  guideSection: {
     backgroundColor: '#fff',
-    paddingVertical: 24,
-    paddingHorizontal: 24,
     marginTop: 16,
-  },
-  setupTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 12,
-  },
-  setupText: {
-    fontSize: 16,
-    color: '#6b7280',
-    lineHeight: 24,
-    marginBottom: 20,
-  },
-  
-  // Steps List
-  stepsList: {
-    gap: 16,
-  },
-  step: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  stepNumber: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#9333ea',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  stepNumberText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  stepText: {
-    fontSize: 16,
-    color: '#374151',
-    flex: 1,
-    lineHeight: 24,
   },
 });
