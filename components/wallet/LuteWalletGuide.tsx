@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Linking, ScrollView } from 'react-native';
-import { ExternalLink, Wallet, Coins, CheckCircle, AlertCircle } from 'lucide-react-native';
+import { ExternalLink, Wallet, Coins, CircleCheck as CheckCircle, CircleAlert as AlertCircle } from 'lucide-react-native';
 
 export default function LuteWalletGuide() {
   const openLuteWallet = () => {
