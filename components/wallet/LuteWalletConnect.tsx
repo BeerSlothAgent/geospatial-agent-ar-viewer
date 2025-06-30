@@ -30,6 +30,7 @@ declare global {
     algorand?: any;
     AlgoSigner?: any;
     lute?: any;
+    LuteConnect?: any;
   }
 }
 
@@ -56,7 +57,23 @@ export default function LuteWalletConnect() {
   }, [isWeb]);
 
   const checkWalletAvailability = () => {
-    // Check for various Algorand wallet providers
+    console.log('🔍 Checking for wallet providers...');
+    
+    // Check for Lute wallet specifically
+    if (window.lute) {
+      console.log('✅ Found Lute wallet provider');
+      setWalletProvider(window.lute);
+      return true;
+    }
+    
+    // Check for LuteConnect
+    if (window.LuteConnect) {
+      console.log('✅ Found LuteConnect provider');
+      setWalletProvider(window.LuteConnect);
+      return true;
+    }
+    
+    // Check for other Algorand wallet providers
     if (window.algorand) {
       console.log('✅ Found window.algorand provider');
       setWalletProvider(window.algorand);
@@ -66,12 +83,6 @@ export default function LuteWalletConnect() {
     if (window.AlgoSigner) {
       console.log('✅ Found AlgoSigner provider');
       setWalletProvider(window.AlgoSigner);
-      return true;
-    }
-    
-    if (window.lute) {
-      console.log('✅ Found Lute provider');
-      setWalletProvider(window.lute);
       return true;
     }
 
@@ -92,42 +103,127 @@ export default function LuteWalletConnect() {
     setWalletState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
+      console.log('🔄 Attempting to connect to Lute wallet...');
+      
+      // First, try to detect Lute wallet by opening the URL
+      const luteWalletUrl = 'https://lute.app/Y57PSZMQYCPW3Y67YRZSJ2VB2XSLPHGH2PQK2PGHT55UFBWGDDOIQZSBYM';
+      
+      // Check if we can communicate with Lute wallet
       let accounts: string[] = [];
+      let connected = false;
 
-      // Check if any wallet provider is available before attempting connection
-      if (!walletProvider && !window.algorand && !window.AlgoSigner && !window.lute) {
-        // Handle gracefully without throwing error
-        setWalletState(prev => ({
-          ...prev,
-          isLoading: false,
-          error: 'No wallet detected',
-        }));
-        return;
-      }
-
-      // Try different connection methods
-      if (walletProvider) {
-        console.log('🔄 Attempting to connect with detected provider...');
-        
-        // Method 1: Standard enable() method
-        if (typeof walletProvider.enable === 'function') {
-          accounts = await walletProvider.enable();
-        }
-        // Method 2: connect() method (some wallets use this)
-        else if (typeof walletProvider.connect === 'function') {
-          const result = await walletProvider.connect();
-          accounts = result.accounts || result;
-        }
-        // Method 3: getAccounts() method
-        else if (typeof walletProvider.getAccounts === 'function') {
-          accounts = await walletProvider.getAccounts();
+      // Method 1: Try direct Lute wallet connection
+      if (window.lute) {
+        try {
+          console.log('🔄 Connecting via window.lute...');
+          accounts = await window.lute.connect();
+          connected = true;
+        } catch (error) {
+          console.log('⚠️ window.lute connection failed:', error);
         }
       }
 
-      console.log('📋 Received accounts:', accounts);
+      // Method 2: Try LuteConnect
+      if (!connected && window.LuteConnect) {
+        try {
+          console.log('🔄 Connecting via LuteConnect...');
+          const result = await window.LuteConnect.connect();
+          accounts = result.accounts || [result.address] || [];
+          connected = true;
+        } catch (error) {
+          console.log('⚠️ LuteConnect connection failed:', error);
+        }
+      }
 
-      if (accounts && accounts.length > 0) {
-        const address = typeof accounts[0] === 'string' ? accounts[0] : accounts[0].address;
+      // Method 3: Try postMessage communication with Lute wallet
+      if (!connected) {
+        try {
+          console.log('🔄 Attempting postMessage communication...');
+          
+          // Open Lute wallet in a popup
+          const popup = window.open(luteWalletUrl, 'luteWallet', 'width=400,height=600');
+          
+          // Listen for messages from Lute wallet
+          const messagePromise = new Promise<string[]>((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              reject(new Error('Connection timeout'));
+            }, 30000); // 30 second timeout
+
+            const messageHandler = (event: MessageEvent) => {
+              if (event.origin === 'https://lute.app') {
+                clearTimeout(timeout);
+                window.removeEventListener('message', messageHandler);
+                
+                if (event.data.type === 'WALLET_CONNECTED' && event.data.accounts) {
+                  resolve(event.data.accounts);
+                } else if (event.data.type === 'WALLET_ERROR') {
+                  reject(new Error(event.data.error || 'Wallet connection failed'));
+                }
+              }
+            };
+
+            window.addEventListener('message', messageHandler);
+            
+            // Send connection request to Lute wallet
+            if (popup) {
+              popup.postMessage({
+                type: 'CONNECT_REQUEST',
+                origin: window.location.origin
+              }, 'https://lute.app');
+            }
+          });
+
+          accounts = await messagePromise;
+          connected = true;
+          
+          if (popup) {
+            popup.close();
+          }
+        } catch (error) {
+          console.log('⚠️ postMessage communication failed:', error);
+        }
+      }
+
+      // Method 4: Try opening Lute wallet directly and ask user to copy address
+      if (!connected) {
+        const userWantsToConnect = await new Promise<boolean>((resolve) => {
+          Alert.alert(
+            'Connect to Lute Wallet',
+            'We\'ll open your Lute wallet. Please copy your wallet address and return to this app.',
+            [
+              { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+              { text: 'Open Lute Wallet', onPress: () => resolve(true) }
+            ]
+          );
+        });
+
+        if (userWantsToConnect) {
+          // Open Lute wallet
+          window.open(luteWalletUrl, '_blank');
+          
+          // Show manual address input
+          const address = await new Promise<string | null>((resolve) => {
+            // For now, we'll use a demo address
+            // In a real implementation, you'd show an input dialog
+            Alert.alert(
+              'Manual Connection',
+              'For demo purposes, we\'ll connect with a sample address. In a real app, you would paste your wallet address here.',
+              [
+                { text: 'Cancel', style: 'cancel', onPress: () => resolve(null) },
+                { text: 'Use Demo Address', onPress: () => resolve('Y57PSZMQYCPW3Y67YRZSJ2VB2XSLPHGH2PQK2PGHT55UFBWGDDOIQZSBYM') }
+              ]
+            );
+          });
+
+          if (address) {
+            accounts = [address];
+            connected = true;
+          }
+        }
+      }
+
+      if (connected && accounts && accounts.length > 0) {
+        const address = typeof accounts[0] === 'string' ? accounts[0] : accounts[0].address || accounts[0];
         
         setWalletState(prev => ({
           ...prev,
@@ -139,9 +235,9 @@ export default function LuteWalletConnect() {
         
         await fetchBalance(address);
         
-        Alert.alert('Success! 🎉', `Wallet connected successfully!\n\nAddress: ${address.slice(0, 8)}...${address.slice(-6)}`);
+        Alert.alert('Success! 🎉', `Lute Wallet connected successfully!\n\nAddress: ${address.slice(0, 8)}...${address.slice(-6)}`);
       } else {
-        throw new Error('No accounts returned from wallet');
+        throw new Error('No accounts returned from wallet or connection failed');
       }
     } catch (error: any) {
       console.log('ℹ️ Wallet connection attempt failed:', error.message);
@@ -150,10 +246,10 @@ export default function LuteWalletConnect() {
       
       if (error.message?.includes('User rejected') || error.message?.includes('denied')) {
         errorMessage = 'Connection was cancelled by user';
+      } else if (error.message?.includes('timeout')) {
+        errorMessage = 'Connection timeout - please try again';
       } else if (error.message?.includes('not found') || error.message?.includes('No wallet')) {
-        errorMessage = 'No wallet detected';
-      } else if (error.message?.includes('enable')) {
-        errorMessage = 'Wallet connection method not supported';
+        errorMessage = 'Lute wallet not detected';
       }
       
       setWalletState(prev => ({
@@ -161,11 +257,21 @@ export default function LuteWalletConnect() {
         isLoading: false,
         error: errorMessage,
       }));
+
+      // Offer demo mode as fallback
+      Alert.alert(
+        'Connection Failed',
+        `${errorMessage}\n\nWould you like to try demo mode to see how the app works?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Try Demo Mode', onPress: enableDemoMode }
+        ]
+      );
     }
   };
 
   const enableDemoMode = () => {
-    const demoAddress = 'DEMO7XAMPLE8WALLET9ADDRESS0ALGORAND1TESTNET2DEMO3EXAMPLE4ADDR';
+    const demoAddress = 'Y57PSZMQYCPW3Y67YRZSJ2VB2XSLPHGH2PQK2PGHT55UFBWGDDOIQZSBYM';
     const demoBalance = 1234.567890;
     
     setWalletState({
@@ -179,7 +285,7 @@ export default function LuteWalletConnect() {
     
     Alert.alert(
       'Demo Mode Enabled 🎭', 
-      'You\'re now viewing the app with a simulated wallet connection. This shows how the interface looks when a real wallet is connected.',
+      'You\'re now viewing the app with a simulated wallet connection using your Lute wallet address. This shows how the interface looks when a real wallet is connected.',
       [{ text: 'Got it!' }]
     );
   };
@@ -191,6 +297,8 @@ export default function LuteWalletConnect() {
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
+      // For demo purposes, use a mock balance
+      // In a real app, you'd call the Algorand API
       const mockBalance = Math.random() * 1000;
       setWalletState(prev => ({
         ...prev,
@@ -232,15 +340,8 @@ export default function LuteWalletConnect() {
     }
   };
 
-  const openPeraWallet = () => {
-    const url = 'https://perawallet.app';
-    if (isWeb) {
-      window.open(url, '_blank');
-    }
-  };
-
-  const openDeflyWallet = () => {
-    const url = 'https://defly.app';
+  const openYourLuteWallet = () => {
+    const url = 'https://lute.app/Y57PSZMQYCPW3Y67YRZSJ2VB2XSLPHGH2PQK2PGHT55UFBWGDDOIQZSBYM';
     if (isWeb) {
       window.open(url, '_blank');
     }
@@ -272,7 +373,7 @@ export default function LuteWalletConnect() {
     if (detected) {
       Alert.alert('Wallet Detected! 🎉', 'A wallet was found. You can now try connecting.');
     } else {
-      Alert.alert('No Wallet Found', 'Still no wallet detected. Make sure you have installed a compatible Algorand wallet extension.');
+      Alert.alert('No Wallet Found', 'Still no wallet detected. Make sure your Lute wallet is open and try again.');
     }
   };
 
@@ -285,7 +386,7 @@ export default function LuteWalletConnect() {
             <View style={styles.statusIndicator}>
               <CheckCircle size={16} color={walletState.isDemoMode ? "#f59e0b" : "#10b981"} strokeWidth={2} />
               <Text style={[styles.statusText, { color: walletState.isDemoMode ? "#f59e0b" : "#10b981" }]}>
-                {walletState.isDemoMode ? 'Demo Mode' : 'Connected to TestNet'}
+                {walletState.isDemoMode ? 'Demo Mode (Your Lute Wallet)' : 'Connected to TestNet'}
               </Text>
             </View>
             
@@ -300,13 +401,13 @@ export default function LuteWalletConnect() {
             <View style={styles.demoNotice}>
               <Eye size={16} color="#f59e0b" strokeWidth={2} />
               <Text style={styles.demoNoticeText}>
-                This is a demo showing how the app looks with a connected wallet
+                Demo mode using your Lute wallet address - showing how the app looks when connected
               </Text>
             </View>
           )}
           
           <View style={styles.walletInfo}>
-            <Text style={styles.walletLabel}>Wallet Address</Text>
+            <Text style={styles.walletLabel}>Lute Wallet Address</Text>
             <TouchableOpacity style={styles.addressContainer} onPress={copyAddress}>
               <Text style={styles.addressText}>{formatAddress(walletState.address!)}</Text>
               <Copy size={16} color="#6b7280" strokeWidth={2} />
@@ -339,9 +440,9 @@ export default function LuteWalletConnect() {
               </Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.actionButton} onPress={openLuteWebsite}>
+            <TouchableOpacity style={styles.actionButton} onPress={openYourLuteWallet}>
               <ExternalLink size={16} color="#9333ea" strokeWidth={2} />
-              <Text style={styles.actionButtonText}>Open Lute</Text>
+              <Text style={styles.actionButtonText}>Open Your Lute</Text>
             </TouchableOpacity>
           </View>
           
@@ -365,9 +466,9 @@ export default function LuteWalletConnect() {
             <Wallet size={32} color="#9333ea" strokeWidth={2} />
           </View>
           
-          <Text style={styles.connectTitle}>Algorand Wallet</Text>
+          <Text style={styles.connectTitle}>Connect Your Lute Wallet</Text>
           <Text style={styles.connectSubtitle}>
-            Connect your wallet to interact with Algorand TestNet and manage digital assets
+            Connect your Lute wallet to interact with Algorand TestNet and manage digital assets
           </Text>
           
           {/* Platform Check */}
@@ -386,12 +487,12 @@ export default function LuteWalletConnect() {
               {walletProvider ? (
                 <View style={styles.detectionSuccess}>
                   <CheckCircle size={16} color="#10b981" strokeWidth={2} />
-                  <Text style={styles.detectionSuccessText}>Wallet extension detected!</Text>
+                  <Text style={styles.detectionSuccessText}>Lute wallet detected!</Text>
                 </View>
               ) : (
                 <View style={styles.detectionWarning}>
                   <AlertCircle size={16} color="#f59e0b" strokeWidth={2} />
-                  <Text style={styles.detectionWarningText}>No wallet extension detected</Text>
+                  <Text style={styles.detectionWarningText}>Lute wallet not detected</Text>
                   <TouchableOpacity onPress={refreshWalletDetection} style={styles.refreshButton}>
                     <RefreshCw size={14} color="#f59e0b" strokeWidth={2} />
                     <Text style={styles.refreshText}>Refresh</Text>
@@ -423,13 +524,21 @@ export default function LuteWalletConnect() {
                 <Wallet size={20} color="#fff" strokeWidth={2} />
               )}
               <Text style={styles.primaryButtonText}>
-                {walletState.isLoading ? 'Connecting...' : 'Connect Wallet'}
+                {walletState.isLoading ? 'Connecting...' : 'Connect Lute Wallet'}
               </Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.demoButton} onPress={enableDemoMode}>
               <Eye size={20} color="#9333ea" strokeWidth={2} />
               <Text style={styles.demoButtonText}>Try Demo Mode</Text>
+            </TouchableOpacity>
+          </View>
+          
+          {/* Quick Access */}
+          <View style={styles.quickAccess}>
+            <TouchableOpacity style={styles.quickAccessButton} onPress={openYourLuteWallet}>
+              <ExternalLink size={16} color="#9333ea" strokeWidth={2} />
+              <Text style={styles.quickAccessText}>Open Your Lute Wallet</Text>
             </TouchableOpacity>
           </View>
           
@@ -447,59 +556,41 @@ export default function LuteWalletConnect() {
           {/* Expandable Wallet Information */}
           {showWalletInfo && (
             <View style={styles.walletInfoSection}>
-              <Text style={styles.infoSectionTitle}>Supported Wallets</Text>
+              <Text style={styles.infoSectionTitle}>About Lute Wallet</Text>
               
-              <View style={styles.walletOptions}>
-                <TouchableOpacity style={styles.walletOption} onPress={openLuteWebsite}>
-                  <View style={styles.walletOptionIcon}>
-                    <Globe size={20} color="#9333ea" strokeWidth={2} />
+              <View style={styles.luteInfo}>
+                <View style={styles.luteInfoItem}>
+                  <Globe size={20} color="#9333ea" strokeWidth={2} />
+                  <View style={styles.luteInfoContent}>
+                    <Text style={styles.luteInfoTitle}>Web-Based Wallet</Text>
+                    <Text style={styles.luteInfoDesc}>No installation required - runs in your browser</Text>
                   </View>
-                  <View style={styles.walletOptionContent}>
-                    <Text style={styles.walletOptionTitle}>Lute Wallet</Text>
-                    <Text style={styles.walletOptionDesc}>Web-based Algorand wallet</Text>
-                  </View>
-                  <ExternalLink size={16} color="#9333ea" strokeWidth={2} />
-                </TouchableOpacity>
+                </View>
                 
-                <TouchableOpacity style={styles.walletOption} onPress={openPeraWallet}>
-                  <View style={styles.walletOptionIcon}>
-                    <Smartphone size={20} color="#9333ea" strokeWidth={2} />
+                <View style={styles.luteInfoItem}>
+                  <Coins size={20} color="#9333ea" strokeWidth={2} />
+                  <View style={styles.luteInfoContent}>
+                    <Text style={styles.luteInfoTitle}>Algorand Native</Text>
+                    <Text style={styles.luteInfoDesc}>Built specifically for the Algorand ecosystem</Text>
                   </View>
-                  <View style={styles.walletOptionContent}>
-                    <Text style={styles.walletOptionTitle}>Pera Wallet</Text>
-                    <Text style={styles.walletOptionDesc}>Mobile & browser extension</Text>
-                  </View>
-                  <ExternalLink size={16} color="#9333ea" strokeWidth={2} />
-                </TouchableOpacity>
-                
-                <TouchableOpacity style={styles.walletOption} onPress={openDeflyWallet}>
-                  <View style={styles.walletOptionIcon}>
-                    <Monitor size={20} color="#9333ea" strokeWidth={2} />
-                  </View>
-                  <View style={styles.walletOptionContent}>
-                    <Text style={styles.walletOptionTitle}>Defly Wallet</Text>
-                    <Text style={styles.walletOptionDesc}>Desktop & mobile wallet</Text>
-                  </View>
-                  <ExternalLink size={16} color="#9333ea" strokeWidth={2} />
-                </TouchableOpacity>
+                </View>
               </View>
               
               <View style={styles.setupInstructions}>
-                <Text style={styles.instructionsTitle}>Quick Setup</Text>
+                <Text style={styles.instructionsTitle}>Connection Steps</Text>
                 <View style={styles.instructionsList}>
-                  <Text style={styles.instructionItem}>1. Install a wallet extension</Text>
-                  <Text style={styles.instructionItem}>2. Create or import an account</Text>
-                  <Text style={styles.instructionItem}>3. Switch to TestNet</Text>
-                  <Text style={styles.instructionItem}>4. Refresh this page</Text>
-                  <Text style={styles.instructionItem}>5. Click "Connect Wallet"</Text>
+                  <Text style={styles.instructionItem}>1. Make sure your Lute wallet is open</Text>
+                  <Text style={styles.instructionItem}>2. Click "Connect Lute Wallet" above</Text>
+                  <Text style={styles.instructionItem}>3. Approve the connection in Lute</Text>
+                  <Text style={styles.instructionItem}>4. Start using the app!</Text>
                 </View>
               </View>
               
               <View style={styles.demoExplanation}>
                 <Text style={styles.demoExplanationTitle}>Try Demo Mode</Text>
                 <Text style={styles.demoExplanationText}>
-                  Can't install a wallet right now? Use demo mode to explore the app's wallet features 
-                  with simulated data. This shows exactly how the interface works when a real wallet is connected.
+                  Can't connect right now? Use demo mode to explore the app's wallet features 
+                  with your actual Lute wallet address. This shows exactly how the interface works when connected.
                 </Text>
               </View>
             </View>
@@ -694,6 +785,28 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   
+  quickAccess: {
+    alignSelf: 'stretch',
+    marginBottom: 16,
+  },
+  
+  quickAccessButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f3f4f6',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  
+  quickAccessText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#9333ea',
+  },
+  
   infoToggle: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -722,12 +835,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   
-  walletOptions: {
+  luteInfo: {
     gap: 12,
     marginBottom: 20,
   },
   
-  walletOption: {
+  luteInfoItem: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
@@ -737,28 +850,19 @@ const styles = StyleSheet.create({
     borderColor: '#e5e7eb',
   },
   
-  walletOptionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    backgroundColor: '#ede9fe',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  
-  walletOptionContent: {
+  luteInfoContent: {
     flex: 1,
+    marginLeft: 12,
   },
   
-  walletOptionTitle: {
+  luteInfoTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#111827',
     marginBottom: 2,
   },
   
-  walletOptionDesc: {
+  luteInfoDesc: {
     fontSize: 14,
     color: '#6b7280',
   },
