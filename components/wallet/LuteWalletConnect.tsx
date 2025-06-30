@@ -113,6 +113,14 @@ export default function LuteWalletConnect() {
           await window.AlgoSigner.connect();
           accounts = await window.AlgoSigner.accounts({ ledger: 'TestNet' });
           accounts = accounts.map((acc: any) => acc.address);
+        } else if (window.lute) {
+          // Add specific handling for Lute wallet
+          if (typeof window.lute.enable === 'function') {
+            accounts = await window.lute.enable();
+          } else if (typeof window.lute.connect === 'function') {
+            const result = await window.lute.connect();
+            accounts = result.accounts || result;
+          }
         } else {
           throw new Error('No Algorand wallet found. Please install Lute Wallet or another Algorand wallet.');
         }
