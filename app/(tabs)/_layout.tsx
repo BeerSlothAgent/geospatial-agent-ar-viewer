@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Camera, Settings, Info, Database } from 'lucide-react-native';
+import { Camera, Settings, Info, Database, Wallet } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
@@ -37,6 +37,15 @@ export default function TabLayout() {
           title: 'Database',
           tabBarIcon: ({ size, color }) => (
             <Database size={size} color={color} strokeWidth={2} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="wallet"
+        options={{
+          title: 'Wallet',
+          tabBarIcon: ({ size, color }) => (
+            <Wallet size={size} color={color} strokeWidth={2} />
           ),
         }}
       />
