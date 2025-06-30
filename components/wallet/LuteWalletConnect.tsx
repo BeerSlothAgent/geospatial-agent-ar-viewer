@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
-import { Wallet, ExternalLink, Copy, CheckCircle, AlertCircle, Coins } from 'lucide-react-native';
+import { Wallet, ExternalLink, Copy, CircleCheck as CheckCircle, CircleAlert as AlertCircle, Coins } from 'lucide-react-native';
 
 interface WalletState {
   isConnected: boolean;
