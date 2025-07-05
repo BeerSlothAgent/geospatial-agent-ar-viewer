@@ -27,7 +27,7 @@ import LocationDisplay from '@/components/location/LocationDisplay';
 import PreciseLocationService from '@/components/location/PreciseLocationService';
 import DatabaseStatus from '@/components/database/DatabaseStatus';
 import ObjectsList from '@/components/database/ObjectsList';
-import LuteWalletConnect from '@/components/wallet/LuteWalletConnect';
+import ThirdwebWalletConnect from '@/components/wallet/ThirdwebWalletConnect';
 import { useLocation } from '@/hooks/useLocation';
 import { useDatabase } from '@/hooks/useDatabase';
 import { isSupabaseConfigured } from '@/lib/supabase';

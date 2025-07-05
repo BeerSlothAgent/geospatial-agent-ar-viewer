@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Wallet } from 'lucide-react-native';
-import LuteWalletConnect from '@/components/wallet/LuteWalletConnect';
-import LuteWalletGuide from '@/components/wallet/LuteWalletGuide';
+import ThirdwebWalletConnect from '@/components/wallet/ThirdwebWalletConnect';
 
 export default function WalletScreen() {
   return (
@@ -12,23 +11,17 @@ export default function WalletScreen() {
         <View style={styles.headerIcon}>
           <Wallet size={24} color="#9333ea" strokeWidth={2} />
         </View>
-        <Text style={styles.headerTitle}>Algorand Wallet</Text>
+        <Text style={styles.headerTitle}>Wallet Connection</Text>
         <Text style={styles.headerSubtitle}>
-          Connect your Lute Wallet to interact with Algorand TestNet
+          Connect your wallet to interact with the AR ecosystem
         </Text>
       </View>
 
       {/* Wallet Connection */}
       <View style={styles.walletSection}>
-        <Text style={styles.sectionTitle}>Wallet Connection</Text>
         <View style={styles.walletContainer}>
-          <LuteWalletConnect />
+          <ThirdwebWalletConnect />
         </View>
-      </View>
-
-      {/* Setup Guide */}
-      <View style={styles.guideSection}>
-        <LuteWalletGuide />
       </View>
     </ScrollView>
   );
@@ -73,27 +66,9 @@ const styles = StyleSheet.create({
   
   // Wallet Section
   walletSection: {
-    backgroundColor: '#fff',
-    paddingVertical: 24,
-    paddingHorizontal: 24,
-    marginTop: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 16,
-    textAlign: 'center',
+    flex: 1,
   },
   walletContainer: {
-    alignItems: 'center',
-  },
-  
-  // Guide Section
-  guideSection: {
-    backgroundColor: '#fff',
-    marginTop: 16,
+    flex: 1,
   },
 });

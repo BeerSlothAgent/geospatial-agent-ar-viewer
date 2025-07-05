@@ -1,26 +1,55 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Linking } from 'react-native';
-import { Wallet, ExternalLink } from 'lucide-react-native';
+import { Wallet } from 'lucide-react-native';
+import { createThirdwebClient } from "thirdweb";
+import { ConnectButton } from "thirdweb/react";
+import { inAppWallet, createWallet } from "thirdweb/wallets";
+
+const client = createThirdwebClient({
+  clientId: "1928bd7fecdee2c34a7a508ae42db420",
+});
+
+const wallets = [
+  inAppWallet({
+    auth: {
+      options: [
+        "google",
+        "discord",
+        "telegram",
+        "farcaster",
+        "email",
+        "x",
+        "passkey",
+        "phone",
+      ],
+    },
+  }),
+  createWallet("io.metamask"),
+  createWallet("com.coinbase.wallet"),
+  createWallet("me.rainbow"),
+  createWallet("io.rabby"),
+  createWallet("io.zerion.wallet"),
+];
 
 export default function WalletConnectButton() {
-  const openLuteWallet = () => {
-    Linking.openURL('https://lute.app');
-  };
 
   return (
     <View style={styles.container}>
       <View style={styles.infoCard}>
         <Wallet size={24} color="#9333ea" strokeWidth={2} />
-        <Text style={styles.infoTitle}>Wallet Integration Ready</Text>
+        <Text style={styles.infoTitle}>Connect Your Wallet</Text>
         <Text style={styles.infoText}>
-          This app includes Algorand wallet integration with Lute Wallet support.
+          Connect your wallet to interact with the AR ecosystem using Thirdweb.
         </Text>
       </View>
       
-      <TouchableOpacity style={styles.setupButton} onPress={openLuteWallet}>
-        <ExternalLink size={16} color="#9333ea" strokeWidth={2} />
-        <Text style={styles.setupButtonText}>Open Lute Wallet</Text>
-      </TouchableOpacity>
+      <View style={styles.connectSection}>
+        <ConnectButton
+          client={client}
+          connectModal={{ size: "compact" }}
+          wallets={wallets}
+        />
+      </View>
     </View>
   );
 }
@@ -57,21 +86,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   
-  setupButton: {
-    flexDirection: 'row',
+  connectSection: {
     alignItems: 'center',
-    backgroundColor: '#f1f5f9',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#9333ea',
-    gap: 6,
-  },
-  
-  setupButtonText: {
-    color: '#9333ea',
-    fontSize: 14,
-    fontWeight: '500',
+    justifyContent: 'center',
+    marginTop: 16,
   },
 });
