@@ -275,24 +275,12 @@ export default function DatabaseScreen() {
       {objects.length > 0 && (
         <View style={styles.debugSection}>
           <Text style={styles.debugTitle}>✅ Database Test Results</Text>
-          <Text style={styles.debugText}>
-            • Supabase URL: {isSupabaseConfigured ? 'Configured ✅' : 'Missing ❌'}
-          </Text>
-          <Text style={styles.debugText}>
-            • Database Client: {supabase ? 'Initialized ✅' : 'Not Initialized ❌'}
-          </Text>
-          <Text style={styles.debugText}>
-            • Migration Applied: Clean migration without constraints ✅
-          </Text>
-          <Text style={styles.debugText}>
-            • Objects Retrieved: {objects.length} ✅
-          </Text>
-          <Text style={styles.debugText}>
-            • Active Objects: {objects.filter(obj => obj.is_active).length} ✅
-          </Text>
-          <Text style={styles.debugText}>
-            • Ready for AR: Your database is working perfectly! 🚀
-          </Text>
+          <Text style={styles.debugText}>• Supabase URL: {isSupabaseConfigured ? 'Configured ✅' : 'Missing ❌'}</Text>
+          <Text style={styles.debugText}>• Database Client: {supabase ? 'Initialized ✅' : 'Not Initialized ❌'}</Text>
+          <Text style={styles.debugText}>• Migration Applied: Clean migration without constraints ✅</Text>
+          <Text style={styles.debugText}>• Objects Retrieved: {objects.length} ✅</Text>
+          <Text style={styles.debugText}>• Active Objects: {objects.filter(obj => obj.is_active).length} ✅</Text>
+          <Text style={styles.debugText}>• Ready for AR: Your database is working perfectly! 🚀</Text>
         </View>
       )}
     </View>
