@@ -714,7 +714,7 @@ export default function HomePage() {
           </View>
           
           <ScrollView style={styles.walletModalContent} showsVerticalScrollIndicator={false}>
-            <LuteWalletConnect />
+            <ThirdwebWalletConnect />
           </ScrollView>
         </View>
       </Modal>
