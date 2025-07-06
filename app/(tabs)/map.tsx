@@ -107,6 +107,67 @@ export default function MapScreen() {
     router.navigate('/');
   };
   
+  // Render map based on platform
+  const renderMap = () => {
+    if (Platform.OS === 'web') {
+      // For web, use Mapbox
+      return (
+        <iframe
+          src={`https://api.mapbox.com/styles/v1/mapbox/dark-v10/static/${location?.longitude || -122.4194},${location?.latitude || 37.7749},13,0/800x600?access_token=${MAPBOX_TOKEN}`}
+          style={{
+            width: '100%',
+            height: '100%',
+            border: 'none',
+          }}
+          title="Map"
+        />
+      );
+    } else {
+      // For native, dynamically import react-native-maps
+      const { MapView, Marker, Circle, PROVIDER_GOOGLE } = require('react-native-maps');
+      
+      return (
+        <MapView
+          style={{ width: '100%', height: '100%' }}
+          provider={PROVIDER_GOOGLE}
+          initialRegion={{
+            latitude: location?.latitude || 37.7749,
+            longitude: location?.longitude || -122.4194,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          }}
+          showsUserLocation={true}
+          showsMyLocationButton={true}
+        >
+          {agents.map((agent) => (
+            <Marker
+              key={agent.id}
+              coordinate={{
+                latitude: agent.latitude,
+                longitude: agent.longitude,
+              }}
+              title={agent.name || 'Agent'}
+              description={agent.description || ''}
+              pinColor={getAgentColor(agent.object_type)}
+              onPress={() => setSelectedAgent(agent)}
+            >
+              <Circle
+                center={{
+                  latitude: agent.latitude,
+                  longitude: agent.longitude,
+                }}
+                radius={agent.visibility_radius || 50}
+                strokeColor={getAgentColor(agent.object_type)}
+                fillColor={`${getAgentColor(agent.object_type)}20`}
+                strokeWidth={2}
+              />
+            </Marker>
+          ))}
+        </MapView>
+      );
+    }
+  };
+  
   // Render map placeholder (since we can't use react-native-maps in this environment)
   return (
     <View style={styles.container}>
@@ -130,37 +191,18 @@ export default function MapScreen() {
       
       {/* Map */}
       <View style={styles.mapContainer}>
-        {Platform.OS === 'web' ? (
-          // For web, use Mapbox
-          <iframe
-            src={`https://api.mapbox.com/styles/v1/mapbox/dark-v10/static/${location?.longitude || -122.4194},${location?.latitude || 37.7749},13,0/800x600?access_token=${MAPBOX_TOKEN}`}
-            style={{
-              width: '100%',
-              height: '100%',
-              border: 'none',
-            }}
-            title="Map"
-          />
-        ) : (
-          // For native, show placeholder
-          <View style={styles.mapPlaceholder}>
-            <Text style={styles.mapPlaceholderText}>Map View</Text>
-            <Text style={styles.mapPlaceholderSubtext}>
-              {location ? 
-                `Your location: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}` : 
-                'Location not available'}
-            </Text>
+        {renderMap()}
+        
+        {/* User location marker */}
+        {Platform.OS === 'web' && (
+          <View style={styles.userMarker}>
+            <View style={styles.userMarkerDot} />
+            <Text style={styles.userMarkerLabel}>You</Text>
           </View>
         )}
         
-        {/* User location marker */}
-        <View style={styles.userMarker}>
-          <View style={styles.userMarkerDot} />
-          <Text style={styles.userMarkerLabel}>You</Text>
-        </View>
-        
         {/* Agent markers */}
-        {agents.map((agent, index) => {
+        {Platform.OS === 'web' && agents.map((agent, index) => {
           const distance = rangeService.getDistanceToAgent(agent) || 0;
           const inRange = distance <= (agent.visibility_radius || 50);
           
@@ -338,25 +380,6 @@ const styles = StyleSheet.create({
   mapContainer: {
     flex: 1,
     position: 'relative',
-  },
-  mapPlaceholder: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#1a1a1a',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  mapPlaceholderText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    position: 'absolute',
-  },
-  mapPlaceholderSubtext: {
-    fontSize: 12,
-    color: '#666',
-    position: 'absolute',
-    top: 50,
   },
   userMarker: {
     position: 'absolute',
