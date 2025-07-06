@@ -94,6 +94,24 @@ export default function ARCameraView({
     });
   }, []);
 
+  // Initialize range detection service
+  useEffect(() => {
+    if (userLocation) {
+      rangeService.updateUserLocation(userLocation);
+    }
+    
+    if (objects && objects.length > 0) {
+      rangeService.updateAgents(objects);
+    }
+    
+    // Subscribe to range updates
+    const unsubscribe = rangeService.subscribe((inRangeAgents) => {
+      setAgentsInRange(inRangeAgents);
+    });
+    
+    return unsubscribe;
+  }, [objects, userLocation]);
+
   // Process objects for AR display when they change
   useEffect(() => {
     if (objects && objects.length > 0 && userLocation && isCameraReady) {
@@ -664,23 +682,6 @@ function LoadingSpinner({ size }: { size: number }) {
     );
   }, []);
 
-  // Initialize range detection service
-  useEffect(() => {
-    if (userLocation) {
-      rangeService.updateUserLocation(userLocation);
-    }
-    
-    if (objects && objects.length > 0) {
-      rangeService.updateAgents(objects);
-    }
-    
-    // Subscribe to range updates
-    const unsubscribe = rangeService.subscribe((inRangeAgents) => {
-      setAgentsInRange(inRangeAgents);
-    });
-    
-    return unsubscribe;
-  }, [objects, userLocation]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotation.value}deg` }],
