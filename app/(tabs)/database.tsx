@@ -266,7 +266,7 @@ export default function DatabaseScreen() {
             key={obj.id || index}
             object={obj}
           />
-        ))}
+      ))}
       </ScrollView>
 
       {/* Debug Info */}
