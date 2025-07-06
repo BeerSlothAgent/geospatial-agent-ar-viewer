@@ -75,30 +75,33 @@ export default function AgentMapView({
   useEffect(() => {
     if (!mapLoaded || !mapContainer.current || map.current) return;
 
-    window.mapboxgl.accessToken = MAPBOX_TOKEN;
-    
-    map.current = new window.mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/dark-v10',
-      center: [userLocation.longitude, userLocation.latitude],
-      zoom: 16
-    });
+    // Add a small delay to ensure CSS styles are fully loaded
+    setTimeout(() => {
+      window.mapboxgl.accessToken = MAPBOX_TOKEN;
+      
+      map.current = new window.mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/dark-v10',
+        center: [userLocation.longitude, userLocation.latitude],
+        zoom: 16
+      });
 
-    // Add user location marker
-    const userMarker = document.createElement('div');
-    userMarker.className = 'user-marker';
-    userMarker.style.cssText = `
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background-color: #00d4ff;
-      border: 3px solid white;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    `;
+      // Add user location marker
+      const userMarker = document.createElement('div');
+      userMarker.className = 'user-marker';
+      userMarker.style.cssText = `
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background-color: #00d4ff;
+        border: 3px solid white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      `;
 
-    new window.mapboxgl.Marker(userMarker)
-      .setLngLat([userLocation.longitude, userLocation.latitude])
-      .addTo(map.current);
+      new window.mapboxgl.Marker(userMarker)
+        .setLngLat([userLocation.longitude, userLocation.latitude])
+        .addTo(map.current);
+    }, 100);
 
     return () => {
       if (map.current) {
