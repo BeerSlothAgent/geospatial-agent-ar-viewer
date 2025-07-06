@@ -20,8 +20,11 @@ import Animated, {
 } from 'react-native-reanimated';
 import ARView from '@/components/ar/ARView';
 import ARAgentScene from '@/components/ar/ARAgentScene';
+import NotificationIcon from '@/components/notification/NotificationIcon';
+import AgentMapView from '@/components/map/AgentMapView';
 import { DeployedObject } from '@/types/database';
 import { LocationData } from '@/hooks/useLocation';
+import { RangeDetectionService } from '@/services/RangeDetectionService';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -48,8 +51,11 @@ export default function ARCameraView({
   const [showARView, setShowARView] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [visibleARObjects, setVisibleARObjects] = useState<any[]>([]);
+  const [showMap, setShowMap] = useState(false);
+  const [agentsInRange, setAgentsInRange] = useState<DeployedObject[]>([]);
   
   const cameraRef = useRef<CameraView>(null);
+  const rangeService = RangeDetectionService.getInstance();
   
   // Animation values
   const pulseAnim = useSharedValue(1);
@@ -208,6 +214,11 @@ export default function ARCameraView({
     setShowARView(true);
   };
 
+  // Toggle map view
+  const handleToggleMap = () => {
+    setShowMap(!showMap);
+  };
+
   // Request permissions with user-friendly messaging
   const handleRequestPermission = async () => {
     try {
@@ -293,6 +304,23 @@ export default function ARCameraView({
       canRetry: true
     };
   };
+
+  // If map view is active, show the map
+  if (showMap) {
+    return (
+      <AgentMapView
+        userLocation={userLocation || { latitude: 37.7749, longitude: -122.4194, timestamp: Date.now() }}
+        agents={objects}
+        onClose={() => setShowMap(false)}
+        onSwitchToCamera={() => setShowMap(false)}
+        onAgentSelect={(agent) => {
+          console.log('Selected agent from map:', agent.name);
+          // Handle agent selection
+          setShowMap(false);
+        }}
+      />
+    );
+  }
 
   // Manual retry function
   const handleRetry = () => {
@@ -453,7 +481,7 @@ export default function ARCameraView({
           {/* AR Status Info */}
           <View style={styles.arStatus}>
             <Text style={styles.arStatusText}>
-              3D Agents: {objects.length}
+              3D Agents: {objects.length} ({agentsInRange.length} in range)
             </Text>
             {userLocation && (
               <Text style={styles.arStatusText}>
@@ -510,8 +538,15 @@ export default function ARCameraView({
             activeOpacity={0.8}
           >
             <Animated.View style={pulseStyle}>
-              <Cube size={24} color="#000" strokeWidth={2} />
+              <Text style={styles.arIndicatorLabel}>Total</Text>
             </Animated.View>
+            
+            {agentsInRange.length > 0 && (
+              <Animated.View style={[styles.arIndicator, styles.inRangeIndicator, pulseStyle]}>
+                <Text style={styles.arIndicatorText}>{agentsInRange.length}</Text>
+                <Text style={styles.arIndicatorLabel}>In Range</Text>
+              </Animated.View>
+            )}
             <Text style={styles.arModeButtonText}>Full AR Mode</Text>
           </TouchableOpacity>
           
@@ -547,6 +582,12 @@ export default function ARCameraView({
               }
             </Text>
           </View>
+          
+          {/* Notification Icon */}
+          <NotificationIcon
+            agentsInRange={agentsInRange}
+            onPress={handleToggleMap}
+          />
           
           <TouchableOpacity
             style={styles.controlButton}
@@ -622,6 +663,24 @@ function LoadingSpinner({ size }: { size: number }) {
       false
     );
   }, []);
+
+  // Initialize range detection service
+  useEffect(() => {
+    if (userLocation) {
+      rangeService.updateUserLocation(userLocation);
+    }
+    
+    if (objects && objects.length > 0) {
+      rangeService.updateAgents(objects);
+    }
+    
+    // Subscribe to range updates
+    const unsubscribe = rangeService.subscribe((inRangeAgents) => {
+      setAgentsInRange(inRangeAgents);
+    });
+    
+    return unsubscribe;
+  }, [objects, userLocation]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotation.value}deg` }],
@@ -1049,6 +1108,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 120,
     right: 20,
+    gap: 10,
     pointerEvents: 'none',
   },
   arIndicator: {
@@ -1059,6 +1119,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#00d4ff',
     minWidth: 50,
+  },
+  inRangeIndicator: {
+    backgroundColor: 'rgba(0, 212, 255, 0.2)',
+    borderColor: '#00d4ff',
   },
   arIndicatorText: {
     fontSize: 18,

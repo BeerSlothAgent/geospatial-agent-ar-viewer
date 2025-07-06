@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform, Dimensions } from 'react-native';
 import { DeployedObject } from '@/types/database';
 import { LocationData } from '@/hooks/useLocation';
+import { RangeDetectionService } from '@/services/RangeDetectionService';
 import Agent3DObject from './Agent3DObject';
 import { calculateAgentPositions, AgentDisplayData } from './AgentPositioning';
 import { X, Info, MapPin, Zap } from 'lucide-react-native';
@@ -17,7 +18,9 @@ const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 export default function ARAgentScene({ agents, userLocation, onAgentSelect }: ARAgentSceneProps) {
   const [agentPositions, setAgentPositions] = useState<Record<string, AgentDisplayData>>({});
   const [selectedAgent, setSelectedAgent] = useState<DeployedObject | null>(null);
+  const [agentsInRange, setAgentsInRange] = useState<DeployedObject[]>([]);
   const [showAgentModal, setShowAgentModal] = useState(false);
+  const rangeService = RangeDetectionService.getInstance();
   
   // Calculate agent positions when agents or user location changes
   useEffect(() => {
@@ -32,6 +35,23 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
         'agents positioned'
       );
     }
+  }, [agents, userLocation]);
+
+  // Update range detection service
+  useEffect(() => {
+    if (userLocation) {
+      rangeService.updateUserLocation(userLocation);
+    }
+    if (agents.length > 0) {
+      rangeService.updateAgents(agents);
+    }
+
+    // Subscribe to range updates
+    const unsubscribe = rangeService.subscribe((inRangeAgents) => {
+      setAgentsInRange(inRangeAgents);
+    });
+
+    return unsubscribe;
   }, [agents, userLocation]);
   
   // Handle agent click
@@ -81,9 +101,12 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
           const { x, y } = getAgentPosition(index);
           
           // Vary size based on agent type and distance
-          const baseSize = 60; // Base size in pixels
+          const baseSize = 70; // Base size in pixels
           const distanceFactor = Math.max(0.5, 1 - (positionData.distance / 100) * 0.5);
           const displaySize = baseSize * positionData.size * distanceFactor;
+          
+          // Check if agent is in range
+          const isInRange = agentsInRange.some(a => a.id === agent.id);
 
           return (
             <View
@@ -95,7 +118,7 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
                   top: y - (displaySize / 2),  // Center vertically
                   width: displaySize,
                   height: displaySize,
-                  zIndex: 1000 - Math.round(positionData.distance), // Closer objects in front
+                  zIndex: isInRange ? 1001 : 1000 - Math.round(positionData.distance), // In-range agents in front
                 }
               ]}
               pointerEvents="box-none"
@@ -103,6 +126,7 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
               <Agent3DObject
                 agent={agent}
                 size={displaySize}
+                isInRange={isInRange}
                 onPress={() => handleAgentClick(agent)}
               />
               
@@ -110,10 +134,15 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
               <View style={styles.agentLabel}>
                 <Text style={styles.agentName} numberOfLines={1}>
                   {agent.name || `Agent ${index + 1}`}
-                </Text> 
+                </Text>
                 <Text style={styles.agentDistance}>
                   {positionData.distance.toFixed(1)}m
                 </Text>
+                {isInRange && (
+                  <View style={styles.inRangeBadge}>
+                    <Text style={styles.inRangeText}>In Range</Text>
+                  </View>
+                )}
               </View>
             </View>
           );
@@ -231,6 +260,18 @@ const styles = StyleSheet.create({
     color: '#00d4ff',
     fontSize: 10,
     marginTop: 2,
+  },
+  inRangeBadge: {
+    backgroundColor: '#00d4ff',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 4,
+  },
+  inRangeText: {
+    color: 'white',
+    fontSize: 8,
+    fontWeight: 'bold',
   },
   modalOverlay: {
     flex: 1,

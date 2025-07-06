@@ -12,12 +12,14 @@ import Animated, {
 interface Agent3DObjectProps {
   agent: DeployedObject;
   size?: number;
+  isInRange?: boolean;
   onPress?: () => void;
 }
 
-export default function Agent3DObject({ agent, size = 50, onPress }: Agent3DObjectProps) {
+export default function Agent3DObject({ agent, size = 50, isInRange = false, onPress }: Agent3DObjectProps) {
   const rotateY = useSharedValue(0);
   const rotateX = useSharedValue(0);
+  const scaleAnim = useSharedValue(1);
   
   // Get object type and color based on agent type
   const objectType = getObjectTypeFromAgentType(agent.object_type);
@@ -28,7 +30,7 @@ export default function Agent3DObject({ agent, size = 50, onPress }: Agent3DObje
     // Rotate Y axis (horizontal spin)
     rotateY.value = withRepeat(
       withTiming(360, { 
-        duration: 8000 + Math.random() * 4000, // Random duration for varied speeds
+        duration: isInRange ? 6000 : 8000 + Math.random() * 4000, // Faster rotation when in range
         easing: Easing.linear 
       }),
       -1, // Infinite repetitions
@@ -38,19 +40,34 @@ export default function Agent3DObject({ agent, size = 50, onPress }: Agent3DObje
     // Slight tilt on X axis
     rotateX.value = withRepeat(
       withTiming(15, { 
-        duration: 6000 + Math.random() * 3000,
+        duration: isInRange ? 4000 : 6000 + Math.random() * 3000,
         easing: Easing.inOut(Easing.sine) 
       }),
       -1, // Infinite repetitions
       true // Reverse (back and forth)
     );
-  }, []);
+    
+    // Add pulse effect when in range
+    if (isInRange) {
+      scaleAnim.value = withRepeat(
+        withTiming(1.15, { 
+          duration: 1000,
+          easing: Easing.inOut(Easing.ease) 
+        }),
+        -1,
+        true
+      );
+    } else {
+      scaleAnim.value = withTiming(1, { duration: 300 });
+    }
+  }, [isInRange]);
 
   // Create animated styles for rotation
   const animatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
         { perspective: 800 },
+        { scale: scaleAnim.value },
         { rotateY: `${rotateY.value}deg` },
         { rotateX: `${rotateX.value}deg` },
       ],
@@ -64,7 +81,7 @@ export default function Agent3DObject({ agent, size = 50, onPress }: Agent3DObje
           styles.object, 
           { 
             width: size, 
-            height: size,
+            height: size
           }
         ]}
         onTouchEnd={onPress}
@@ -72,8 +89,15 @@ export default function Agent3DObject({ agent, size = 50, onPress }: Agent3DObje
         <View style={[
           styles.objectInner,
           getObjectStyle(objectType, objectColor, size),
+          isInRange && styles.objectInnerInRange
         ]} />
       </View>
+      
+      {isInRange && (
+        <View style={[styles.glowEffect, { width: size * 1.5, height: size * 1.5 }]}>
+          <View style={[styles.glow, { backgroundColor: objectColor }]} />
+        </View>
+      )}
     </Animated.View>
   );
 }
@@ -196,6 +220,25 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: '100%',
     height: '100%',
-    backfaceVisibility: 'visible',
+    backfaceVisibility: 'visible'
+  },
+  objectInnerInRange: {
+    borderWidth: 2,
+    borderColor: '#ffffff80'
+  },
+  glowEffect: {
+    position: 'absolute',
+    borderRadius: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
+    opacity: 0.5,
+    zIndex: -1
+  },
+  glow: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 100,
+    opacity: 0.3,
+    transform: [{ scale: 0.8 }]
   },
 });
