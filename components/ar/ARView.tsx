@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, Dimensions, Platform, Text } from 'react-native';
 import { useAR } from '@/hooks/useAR';
 import { DeployedObject } from '@/types/database';
@@ -16,17 +16,30 @@ interface ARViewProps {
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
+// WebGL support detection
+const isWebGLSupported = (): boolean => {
+  if (Platform.OS !== 'web') return false;
+  
+  try {
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    return !!gl;
+  } catch (e) {
+    return false;
+  }
+};
+
 export default function ARView({ 
   objects, 
   userLocation, 
   onObjectSelect, 
   onError 
 }: ARViewProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<View>(null);
+  const [canvasElement, setCanvasElement] = useState<HTMLCanvasElement | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [initializationError, setInitializationError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [webGLSupported, setWebGLSupported] = useState<boolean | null>(null);
   const maxRetries = 3;
 
   const {
@@ -43,12 +56,44 @@ export default function ARView({
     renderDistance: 100,
   });
 
-  // Initialize AR session when component mounts
+  // Check WebGL support on mount
   useEffect(() => {
-    if (Platform.OS === 'web' && canvasRef.current && !isInitialized && !sessionState.isLoading) {
-      initializeAR();
+    if (Platform.OS === 'web') {
+      const supported = isWebGLSupported();
+      setWebGLSupported(supported);
+      
+      if (!supported) {
+        const errorMessage = 'WebGL is not supported on this device. Please use a modern browser with WebGL support.';
+        setInitializationError(errorMessage);
+        onError?.(errorMessage);
+      }
     }
-  }, [isInitialized, sessionState.isLoading]);
+  }, [onError]);
+
+  // Canvas ref callback to ensure element is available
+  const canvasRefCallback = useCallback((element: HTMLCanvasElement | null) => {
+    if (element && Platform.OS === 'web') {
+      console.log('📱 Canvas element mounted and ready');
+      setCanvasElement(element);
+    } else if (!element) {
+      console.log('📱 Canvas element unmounted');
+      setCanvasElement(null);
+    }
+  }, []);
+
+  // Initialize AR session when canvas is available and WebGL is supported
+  useEffect(() => {
+    if (
+      Platform.OS === 'web' && 
+      canvasElement && 
+      webGLSupported && 
+      !isInitialized && 
+      !sessionState.isLoading &&
+      !initializationError
+    ) {
+      initializeAR(canvasElement);
+    }
+  }, [canvasElement, webGLSupported, isInitialized, sessionState.isLoading, initializationError]);
 
   // Load objects when they change or user location updates
   useEffect(() => {
@@ -73,9 +118,16 @@ export default function ARView({
     }
   }, [sessionState.error, onError]);
 
-  const initializeAR = async () => {
-    if (!canvasRef.current) {
-      console.error('Canvas not available for AR initialization');
+  const initializeAR = async (canvas: HTMLCanvasElement) => {
+    if (!canvas) {
+      console.error('Canvas element is null during AR initialization');
+      return;
+    }
+
+    if (!webGLSupported) {
+      const errorMessage = 'WebGL is not supported on this device. Please use a modern browser with WebGL support.';
+      setInitializationError(errorMessage);
+      onError?.(errorMessage);
       return;
     }
 
@@ -83,7 +135,7 @@ export default function ARView({
       console.log(`🚀 Initializing AR session (attempt ${retryCount + 1}/${maxRetries + 1})...`);
       setInitializationError(null);
       
-      const success = await initializeSession(canvasRef.current);
+      const success = await initializeSession(canvas);
       if (success) {
         setIsInitialized(true);
         setRetryCount(0);
@@ -104,7 +156,9 @@ export default function ARView({
         
         setTimeout(() => {
           setRetryCount(prev => prev + 1);
-          initializeAR();
+          if (canvasElement) {
+            initializeAR(canvasElement);
+          }
         }, delay);
       } else {
         console.error(`❌ AR initialization failed after ${maxRetries + 1} attempts`);
@@ -114,7 +168,7 @@ export default function ARView({
   };
 
   const handleCanvasResize = () => {
-    if (canvasRef.current) {
+    if (canvasElement) {
       const { width, height } = Dimensions.get('window');
       handleResize(width, height);
     }
@@ -148,6 +202,8 @@ export default function ARView({
       capabilities,
       retryCount,
       initializationError,
+      webGLSupported,
+      canvasAvailable: !!canvasElement,
     });
   }, [
     isInitialized, 
@@ -158,7 +214,9 @@ export default function ARView({
     userLocation, 
     capabilities,
     retryCount,
-    initializationError
+    initializationError,
+    webGLSupported,
+    canvasElement
   ]);
 
   if (Platform.OS !== 'web') {
@@ -184,11 +242,43 @@ export default function ARView({
     );
   }
 
+  // Show WebGL not supported error
+  if (webGLSupported === false) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.errorOverlay}>
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorTitle}>WebGL Not Supported</Text>
+            <Text style={styles.errorMessage}>
+              Your browser doesn't support WebGL, which is required for AR functionality. 
+              Please use a modern browser like Chrome, Firefox, Safari, or Edge.
+            </Text>
+            <Text style={styles.finalErrorText}>
+              Try updating your browser or enabling hardware acceleration in browser settings.
+            </Text>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // Show loading while checking WebGL support
+  if (webGLSupported === null) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <LoadingSpinner size={40} />
+          <Text style={styles.loadingText}>Checking browser compatibility...</Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container} ref={containerRef}>
+    <View style={styles.container}>
       {/* Three.js Canvas */}
       <canvas
-        ref={canvasRef}
+        ref={canvasRefCallback}
         style={styles.canvas}
         width={screenWidth}
         height={screenHeight}
@@ -212,7 +302,7 @@ export default function ARView({
       />
 
       {/* Initialization Error Display */}
-      {initializationError && !sessionState.isLoading && (
+      {initializationError && !sessionState.isLoading && webGLSupported && (
         <View style={styles.errorOverlay}>
           <View style={styles.errorContainer}>
             <Text style={styles.errorTitle}>AR Initialization Failed</Text>
@@ -266,6 +356,18 @@ const styles = StyleSheet.create({
   placeholderSubtext: {
     fontSize: 16,
     color: '#aaa',
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#1a1a1a',
+    gap: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#fff',
     textAlign: 'center',
   },
   errorOverlay: {
