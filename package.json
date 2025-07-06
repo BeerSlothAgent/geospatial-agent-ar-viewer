@@ -44,6 +44,7 @@
     "lute-connect": "^1.6.1",
     "react": "19.0.0",
     "react-dom": "19.0.0",
+    "react-map-gl": "^8.0.4",
     "react-native": "0.79.1",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-maps": "^1.8.0",
