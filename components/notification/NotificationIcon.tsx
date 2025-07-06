@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { Bell, BellRing } from 'lucide-react-native';
+import { Bell, BellRing, MapPin } from 'lucide-react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -12,10 +12,11 @@ import { DeployedObject } from '@/types/database';
 
 interface NotificationIconProps {
   agentsInRange: DeployedObject[];
+  userLocation?: LocationData | null;
   onPress: () => void;
 }
 
-export default function NotificationIcon({ agentsInRange, onPress }: NotificationIconProps) {
+export default function NotificationIcon({ agentsInRange, userLocation, onPress }: NotificationIconProps) {
   const [isInRange, setIsInRange] = useState(false);
   const pulseAnim = useSharedValue(1);
   
@@ -89,11 +90,19 @@ export default function NotificationIcon({ agentsInRange, onPress }: Notificatio
         <View style={styles.tooltip}>
           <Text style={styles.tooltipText}>
             {agentsInRange.length} agent{agentsInRange.length !== 1 ? 's' : ''} nearby
-          </Text>
-        </View>
-      )}
-    </View>
-  );
+        </Text>
+        {userLocation && (
+          <View style={styles.locationInfo}>
+            <MapPin size={12} color="#00d4ff" strokeWidth={2} />
+            <Text style={styles.locationText}>
+              {userLocation.latitude.toFixed(4)}, {userLocation.longitude.toFixed(4)}
+            </Text>
+          </View>
+        )}
+      </View>
+    )}
+  </View>
+);
 }
 
 const styles = StyleSheet.create({
@@ -148,5 +157,15 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
     textAlign: 'center',
+  },
+  locationInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    gap: 4,
+  },
+  locationText: {
+    color: '#00d4ff',
+    fontSize: 10,
   },
 });
