@@ -21,7 +21,6 @@ import Animated, {
 import ARView from '@/components/ar/ARView';
 import ARAgentScene from '@/components/ar/ARAgentScene';
 import NotificationIcon from '@/components/notification/NotificationIcon';
-import NotificationIcon from '@/components/notification/NotificationIcon';
 import { Bell } from 'lucide-react-native';
 import AgentMapView from '@/components/map/AgentMapView';
 import { DeployedObject } from '@/types/database';
