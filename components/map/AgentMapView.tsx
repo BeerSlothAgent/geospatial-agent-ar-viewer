@@ -4,7 +4,6 @@ import { Camera, X, MapPin, Info, Navigation } from 'lucide-react-native';
 import { DeployedObject } from '@/types/database';
 import { LocationData } from '@/hooks/useLocation';
 import { RangeDetectionService } from '@/services/RangeDetectionService';
-import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
 
 interface AgentMapViewProps {
   userLocation: LocationData;
