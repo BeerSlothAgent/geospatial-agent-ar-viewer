@@ -23,6 +23,11 @@ export interface DeployedObject {
   rotation_y?: number;
   rotation_z?: number;
   visibility_radius?: number;
+  updated_at?: string;
+  distance_meters?: number;
+  interaction_fee_usdfc?: number;
+  agent_wallet_address?: string;
+  agent_wallet_type?: string;
 }
 
 export interface DatabaseStats {

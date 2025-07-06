@@ -19,6 +19,7 @@ import Animated, {
   withSequence,
 } from 'react-native-reanimated';
 import ARView from '@/components/ar/ARView';
+import ARAgentScene from '@/components/ar/ARAgentScene';
 import { DeployedObject } from '@/types/database';
 import { LocationData } from '@/hooks/useLocation';
 
@@ -437,51 +438,20 @@ export default function ARCameraView({
       {/* AR Objects Overlay - ABSOLUTELY POSITIONED ON TOP */}
       {isCameraReady && (
         <View style={styles.arOverlay}>
-          {/* AR Objects */}
-          {visibleARObjects.map((obj) => (
-            <TouchableOpacity
-              key={obj.id}
-              style={[
-                styles.arObject,
-                {
-                  left: obj.x,
-                  top: obj.y,
-                }
-              ]}
-              onPress={() => {
-                console.log('🎯 AR Object tapped:', obj.name);
-                Alert.alert('AR Object', `Interacting with ${obj.name}\nDistance: ${obj.distance.toFixed(2)}km`);
-              }}
-              activeOpacity={0.8}
-            >
-              {/* AR Object Visual */}
-              <View style={styles.arObjectVisual}>
-                <Text style={styles.arObjectIcon}>
-                  {obj.type === 'sphere' ? '⚪' : 
-                   obj.type === 'cube' || obj.type === 'test-object' ? '🔲' : 
-                   obj.type === 'cylinder' ? '🔘' : '📍'}
-                </Text>
-              </View>
-              
-              {/* AR Object Label */}
-              <View style={styles.arObjectLabel}>
-                <Text style={styles.arObjectName}>{obj.name}</Text>
-                {obj.distance > 0 && (
-                  <Text style={styles.arObjectDistance}>
-                    {obj.distance.toFixed(2)}km
-                  </Text>
-                )}
-                <Text style={styles.arObjectType}>
-                  {obj.modelType.toUpperCase()}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+          {/* Enhanced 3D AR Objects Scene */}
+          <ARAgentScene 
+            agents={objects}
+            userLocation={userLocation}
+            onAgentSelect={(agent) => {
+              console.log('🎯 Agent selected:', agent.name);
+              Alert.alert('Agent Interaction', `Interacting with ${agent.name}\nDistance: ${agent.distance_meters ? (agent.distance_meters / 1000).toFixed(2) : '?'}km`);
+            }}
+          />
           
           {/* AR Status Info */}
           <View style={styles.arStatus}>
             <Text style={styles.arStatusText}>
-              AR Objects: {visibleARObjects.length}
+              AR Objects: {objects.length}
             </Text>
             {userLocation && (
               <Text style={styles.arStatusText}>
@@ -545,7 +515,7 @@ export default function ARCameraView({
           
           <Text style={styles.objectsAvailable}>
             {objects.length > 0 
-              ? `${objects.length} AR object${objects.length !== 1 ? 's' : ''} available`
+              ? `${objects.length} objects visible • Tap to interact`
               : 'Demo objects available for testing'
             }
           </Text>
@@ -588,7 +558,7 @@ export default function ARCameraView({
         {/* AR Object Indicators */}
         <View style={styles.arIndicators}>
           <Animated.View style={[styles.arIndicator, pulseStyle]}>
-            <Text style={styles.arIndicatorText}>{visibleARObjects.length}</Text>
+            <Text style={styles.arIndicatorText}>{objects.length}</Text>
             <Text style={styles.arIndicatorLabel}>Visible</Text>
           </Animated.View>
         </View>
