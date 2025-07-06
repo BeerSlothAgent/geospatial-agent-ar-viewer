@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
 
-// Environment variables for Supabase connection
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || '';
-const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+// Get environment variables for Supabase connection
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://ykxnxvbxvnwxvnwxvnwx.supabase.co';
+const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlreG54dmJ4dm53eHZud3h2bnd4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTY5MjM0NTYsImV4cCI6MjAzMjQ5OTQ1Nn0.EXAMPLE_KEY_REPLACE_WITH_YOUR_ACTUAL_KEY';
 
 // Check if we have valid Supabase credentials
 const hasValidCredentials = SUPABASE_URL && 

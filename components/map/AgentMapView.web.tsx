@@ -74,9 +74,8 @@ export default function AgentMapView({
   // Initialize map
   useEffect(() => {
     if (!mapLoaded || !mapContainer.current || map.current) return;
-
-    // Add a longer delay to ensure CSS styles are fully loaded
-    setTimeout(() => {
+    
+    try {
       window.mapboxgl.accessToken = MAPBOX_TOKEN;
       
       map.current = new window.mapboxgl.Map({
@@ -85,7 +84,7 @@ export default function AgentMapView({
         center: [userLocation.longitude, userLocation.latitude],
         zoom: 16
       });
-
+      
       // Add user location marker
       const userMarker = document.createElement('div');
       userMarker.className = 'user-marker';
@@ -97,21 +96,24 @@ export default function AgentMapView({
         border: 3px solid white;
         box-shadow: 0 2px 4px rgba(0,0,0,0.3);
       `;
-
+      
       new window.mapboxgl.Marker(userMarker)
         .setLngLat([userLocation.longitude, userLocation.latitude])
         .addTo(map.current);
-
+      
       // Wait for map to load before adding markers
       map.current.on('load', () => {
         console.log('✅ Mapbox map loaded successfully');
+        updateAgentMarkers();
       });
-
+      
       // Handle style loading errors
       map.current.on('error', (e) => {
         console.error('❌ Mapbox error:', e);
       });
-    }, 500); // Increased delay to 500ms to ensure styles are loaded
+    } catch (error) {
+      console.error('❌ Error initializing map:', error);
+    }
 
     return () => {
       if (map.current) {
@@ -138,19 +140,19 @@ export default function AgentMapView({
   // Update agent markers
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
+
+    // Add a delay to ensure the map is fully loaded
+    const timer = setTimeout(() => {
+      try {
+        if (map.current) {
+          updateAgentMarkers();
+        }
+      } catch (error) {
+        console.error('Error updating agent markers:', error);
+      }
+    }, 1000);
     
-   // Add a delay to ensure the map is fully loaded
-   const timer = setTimeout(() => {
-     try {
-       if (map.current) {
-         updateAgentMarkers();
-       }
-     } catch (error) {
-       console.error('Error updating agent markers:', error);
-     }
-   }, 1000);
-   
-   return () => clearTimeout(timer);
+    return () => clearTimeout(timer);
   }, [agents, mapLoaded]);
 
   // Function to update agent markers

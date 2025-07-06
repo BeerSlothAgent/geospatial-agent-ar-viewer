@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { testConnection, getNearbyObjectsFromSupabase, isSupabaseConfigured } from '@/lib/supabase';
+import { testConnection, getNearbyObjectsFromSupabase, isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { DeployedObject, NearbyObjectsQuery, DatabaseError } from '@/types/database';
 
 export interface DatabaseState {
@@ -68,10 +68,25 @@ export function useDatabase(): UseDatabaseReturn {
   const getNearbyObjects = useCallback(async (query: NearbyObjectsQuery): Promise<DeployedObject[]> => {
     try {
       if (isMounted.current) {
-        setState(prev => ({ ...prev, isLoading: true, error: null }));
+        setState(prev => ({ 
+          ...prev, 
+          isLoading: true, 
+          error: null 
+        }));
       }
 
-      console.log('Fetching nearby objects:', query);
+      console.log('🔍 Fetching nearby objects:', {
+        lat: query.latitude.toFixed(6),
+        lng: query.longitude.toFixed(6),
+        radius: query.radius_meters || 100,
+        supabaseConfigured: isSupabaseConfigured,
+        supabaseClient: !!supabase
+      });
+
+      // Validate query parameters
+      if (!query || isNaN(query.latitude) || isNaN(query.longitude)) {
+        throw new Error('Invalid location coordinates provided');
+      }
 
       // Try to get real data from Supabase first
       const supabaseData = await getNearbyObjectsFromSupabase(
@@ -83,7 +98,7 @@ export function useDatabase(): UseDatabaseReturn {
       let objects: DeployedObject[] = [];
 
       if (supabaseData && supabaseData.length > 0) {
-        // Use real Supabase data
+        // Use real Supabase data with proper transformation
         objects = supabaseData.map((obj: any) => ({
           id: obj.id,
           user_id: obj.user_id || 'unknown',
@@ -106,7 +121,8 @@ export function useDatabase(): UseDatabaseReturn {
           created_at: obj.created_at || new Date().toISOString(),
           // Use created_at as updated_at since updated_at column doesn't exist
           updated_at: obj.created_at || new Date().toISOString(),
-          distance_meters: parseFloat(obj.distance_meters || 0),
+          distance_meters: typeof obj.distance_meters === 'number' ? obj.distance_meters : 
+                          (typeof obj.distance_meters === 'string' ? parseFloat(obj.distance_meters) : 0),
           preciselatitude: obj.preciselatitude ? parseFloat(obj.preciselatitude) : undefined,
           preciselongitude: obj.preciselongitude ? parseFloat(obj.preciselongitude) : undefined,
           precisealtitude: obj.precisealtitude ? parseFloat(obj.precisealtitude) : undefined,
@@ -115,10 +131,19 @@ export function useDatabase(): UseDatabaseReturn {
         }));
         
         console.log(`✅ Loaded ${objects.length} objects from Supabase:`, objects);
+      } else if (supabaseData === null && isSupabaseConfigured) {
+        console.warn('⚠️ Supabase returned null data but is configured - check your connection');
+        objects = generateMockObjects(query);
+        console.log(`🔄 Using ${objects.length} mock objects due to Supabase data issue`);
+        
+        // Log the first object for debugging
+        if (objects.length > 0) {
+          console.log('Sample object:', objects[0]);
+        }
       } else {
         // Fall back to mock data for demo purposes
         objects = generateMockObjects(query);
-        console.log(`⚠️ Using ${objects.length} mock objects (Supabase not available or no data)`);
+        console.log(`⚠️ Using ${objects.length} mock objects (Supabase not available or not configured)`);
       }
       
       if (isMounted.current) {
@@ -220,7 +245,9 @@ export function useDatabase(): UseDatabaseReturn {
 
 // Mock data generation for demo purposes
 function generateMockObjects(query: NearbyObjectsQuery): DeployedObject[] {
-  const { latitude, longitude, radius_meters = 100, limit = 50 } = query;
+  const { latitude, longitude, radius_meters = 100, limit = 10 } = query;
+  
+  console.log('Generating mock objects at', latitude, longitude);
   
   const mockObjects: DeployedObject[] = [
     {
@@ -243,7 +270,7 @@ function generateMockObjects(query: NearbyObjectsQuery): DeployedObject[] {
       is_active: true,
       visibility_radius: 50,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(), 
       distance_meters: 15.2,
     },
     {
@@ -266,7 +293,7 @@ function generateMockObjects(query: NearbyObjectsQuery): DeployedObject[] {
       is_active: true,
       visibility_radius: 75,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(), 
       distance_meters: 28.7,
     },
     {
@@ -289,11 +316,59 @@ function generateMockObjects(query: NearbyObjectsQuery): DeployedObject[] {
       is_active: true,
       visibility_radius: 100,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(), 
       distance_meters: 42.1,
     },
+    {
+      id: 'mock-4',
+      user_id: 'demo-user',
+      object_type: 'Intelligent Assistant',
+      name: 'AI Helper',
+      description: 'An intelligent AI assistant to help with your questions',
+      latitude: latitude + 0.0003,
+      longitude: longitude - 0.0002,
+      altitude: 8,
+      model_url: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Duck/glTF/Duck.gltf',
+      model_type: 'gltf',
+      scale_x: 1.5,
+      scale_y: 1.5,
+      scale_z: 1.5,
+      rotation_x: 0,
+      rotation_y: 45,
+      rotation_z: 0,
+      is_active: true,
+      visibility_radius: 80,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      distance_meters: 35.8,
+    },
+    {
+      id: 'mock-5',
+      user_id: 'demo-user',
+      object_type: 'Game Agent',
+      name: 'Game Buddy',
+      description: 'Interactive gaming companion',
+      latitude: latitude - 0.0002,
+      longitude: longitude - 0.0001,
+      altitude: 12,
+      model_url: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF/Box.gltf',
+      model_type: 'gltf',
+      scale_x: 1.2,
+      scale_y: 1.2,
+      scale_z: 1.2,
+      rotation_x: 0,
+      rotation_y: 30,
+      rotation_z: 0,
+      is_active: true,
+      visibility_radius: 60,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      distance_meters: 22.3,
+    }
   ];
 
+  console.log(`Generated ${mockObjects.length} mock objects`);
+  
   // Filter by radius and limit
   return mockObjects
     .filter(obj => (obj.distance_meters || 0) <= radius_meters)
@@ -302,8 +377,8 @@ function generateMockObjects(query: NearbyObjectsQuery): DeployedObject[] {
 
 function generateMockObjectById(id: string): DeployedObject | null {
   const mockObjects = generateMockObjects({
-    latitude: 37.7749,
-    longitude: -122.4194,
+    latitude: 37.7749, 
+    longitude: -122.4194, 
     radius_meters: 1000,
   });
 

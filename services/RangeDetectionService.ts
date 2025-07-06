@@ -16,11 +16,24 @@ export class RangeDetectionService {
 
   // Calculate distance between two points in meters
   private calculateDistance(
-    lat1: number, 
-    lon1: number, 
-    lat2: number, 
+    lat1: number,
+    lon1: number,
+    lat2: number,
     lon2: number
   ): number {
+    // Validate inputs to prevent NaN results
+    if (typeof lat1 !== 'number' || typeof lon1 !== 'number' || 
+        typeof lat2 !== 'number' || typeof lon2 !== 'number' ||
+        isNaN(lat1) || isNaN(lon1) || isNaN(lat2) || isNaN(lon2)) {
+      console.warn('Invalid coordinates in distance calculation:', { lat1, lon1, lat2, lon2 });
+      return 999999; // Return a large distance for invalid coordinates
+    }
+    
+   if (isNaN(lat1) || isNaN(lon1) || isNaN(lat2) || isNaN(lon2)) {
+     console.warn('Invalid coordinates in distance calculation:', { lat1, lon1, lat2, lon2 });
+     return 999999; // Return a large distance for invalid coordinates
+   }
+   
     const R = 6371e3; // Earth's radius in meters
     const φ1 = lat1 * Math.PI / 180;
     const φ2 = lat2 * Math.PI / 180;
@@ -37,12 +50,32 @@ export class RangeDetectionService {
 
   // Update user location and check for agents in range
   updateUserLocation(location: LocationData): void {
+    if (!location || typeof location.latitude !== 'number' || typeof location.longitude !== 'number') {
+      console.warn('Invalid location data provided to RangeDetectionService:', location);
+      return;
+    }
+    
+   if (!location || isNaN(location.latitude) || isNaN(location.longitude)) {
+     console.warn('Invalid location data provided to RangeDetectionService:', location);
+     return;
+   }
+   
     this.userLocation = location;
     this.checkAgentsInRange();
   }
 
   // Update agents list
   updateAgents(agents: DeployedObject[]): void {
+    if (!Array.isArray(agents)) {
+      console.warn('Invalid agents data provided to RangeDetectionService:', agents);
+      return;
+    }
+    
+   if (!agents || !Array.isArray(agents)) {
+     console.warn('Invalid agents data provided to RangeDetectionService:', agents);
+     return;
+   }
+   
     this.agents = agents;
     this.checkAgentsInRange();
   }
@@ -55,6 +88,11 @@ export class RangeDetectionService {
     }
 
     const agentsInRange = this.agents.filter(agent => {
+      if (!agent || typeof agent.latitude !== 'number' || typeof agent.longitude !== 'number') {
+        console.warn('Invalid agent data in range check:', agent);
+        return false;
+      }
+      
       const distance = this.calculateDistance(
         this.userLocation!.latitude,
         this.userLocation!.longitude,
@@ -63,10 +101,11 @@ export class RangeDetectionService {
       );
 
       // Use agent's visibility_radius or default to 50m
-      const agentRange = agent.visibility_radius || 50;
+      const agentRange = typeof agent.visibility_radius === 'number' ? agent.visibility_radius : 50;
       return distance <= agentRange;
     });
 
+    console.log(`🔍 Found ${agentsInRange.length} agents in range out of ${this.agents.length} total agents`);
     this.notifyCallbacks(agentsInRange);
   }
 
@@ -93,8 +132,12 @@ export class RangeDetectionService {
     if (!this.userLocation || this.agents.length === 0) {
       return [];
     }
-
+    
     return this.agents.filter(agent => {
+      if (!agent || typeof agent.latitude !== 'number' || typeof agent.longitude !== 'number') {
+        return false;
+      }
+      
       const distance = this.calculateDistance(
         this.userLocation!.latitude,
         this.userLocation!.longitude,
@@ -102,7 +145,7 @@ export class RangeDetectionService {
         agent.longitude
       );
 
-      const agentRange = agent.visibility_radius || 50;
+      const agentRange = typeof agent.visibility_radius === 'number' ? agent.visibility_radius : 50;
       return distance <= agentRange;
     });
   }
@@ -110,6 +153,9 @@ export class RangeDetectionService {
   // Get distance to specific agent
   getDistanceToAgent(agent: DeployedObject): number | null {
     if (!this.userLocation) return null;
+    if (!agent || typeof agent.latitude !== 'number' || typeof agent.longitude !== 'number') {
+      return null;
+    }
 
     return this.calculateDistance(
       this.userLocation.latitude,

@@ -28,16 +28,28 @@ export function calculateAgentPositions(
 ): Record<string, AgentDisplayData> {
   const positions: Record<string, AgentDisplayData> = {};
   
+  if (!agents || agents.length === 0) {
+    console.log('No agents provided for position calculation');
+    return positions;
+  }
+  
   if (!userLocation) {
     console.warn('User location not available for position calculation');
     return positions;
   }
+  
+  console.log(`Calculating positions for ${agents.length} agents relative to user at ${userLocation.latitude.toFixed(6)}, ${userLocation.longitude.toFixed(6)}`);
   
   // Earth radius in meters
   const EARTH_RADIUS = 6371000;
   
   agents.forEach((agent, index) => {
     try {
+      if (!agent || !agent.id || isNaN(agent.latitude) || isNaN(agent.longitude)) {
+        console.warn('Invalid agent data:', agent);
+        return;
+      }
+      
       // Calculate distance from user to agent
       const distance = agent.distance_meters || 
         calculateDistance(
@@ -49,6 +61,7 @@ export function calculateAgentPositions(
       
       // Skip agents that are too far away
       if (distance > maxDistance) {
+        console.log(`Agent ${agent.name} (${agent.id}) is too far: ${distance}m > ${maxDistance}m`);
         return;
       }
       
@@ -59,6 +72,7 @@ export function calculateAgentPositions(
       const finalSize = baseSize * sizeVariation * distanceScaling;
       
       // Store calculated position and metadata
+      console.log(`Positioned agent ${agent.name} (${agent.id}) at distance ${distance}m, size ${finalSize}`);
       positions[agent.id] = {
         id: agent.id,
         position: { 
@@ -75,6 +89,7 @@ export function calculateAgentPositions(
     }
   });
   
+  console.log(`Successfully calculated positions for ${Object.keys(positions).length} agents`);
   return positions;
 }
 

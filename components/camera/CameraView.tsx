@@ -115,7 +115,7 @@ export default function ARCameraView({
   // Process objects for AR display when they change
   useEffect(() => {
     if (objects && objects.length > 0 && userLocation && isCameraReady) {
-      console.log('🎯 Processing', objects.length, 'objects for AR display');
+      console.log('🎯 Processing', objects.length, 'objects for AR display', objects);
       
       // Filter nearby objects (within 1km for AR display)
       const nearbyObjects = objects.filter(obj => {
@@ -124,6 +124,11 @@ export default function ARCameraView({
       });
 
       console.log('🎯 Found', nearbyObjects.length, 'nearby objects for AR');
+      
+      // Log the first few objects for debugging
+      if (nearbyObjects.length > 0) {
+        console.log('Sample objects:', nearbyObjects.slice(0, 2));
+      }
       
       // Transform objects for AR positioning
       const arObjects = nearbyObjects.map((obj, index) => {
@@ -489,6 +494,7 @@ export default function ARCameraView({
             <ARAgentScene 
               agents={objects}
               userLocation={userLocation}
+              key={`ar-scene-${objects.length}`}
               onAgentSelect={(agent) => {
                 console.log('🎯 Agent selected:', agent.name);
                 Alert.alert('Agent Interaction', `Interacting with ${agent.name}\nDistance: ${agent.distance_meters ? (agent.distance_meters / 1000).toFixed(2) : '?'}km`);
