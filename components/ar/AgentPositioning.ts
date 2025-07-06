@@ -61,7 +61,7 @@ export function calculateAgentPositions(
       // Calculate position relative to user
       // Using Mercator projection for simplicity
       const x = EARTH_RADIUS * (lngRad - userLngRad) * Math.cos(userLatRad);
-      const z = EARTH_RADIUS * (latRad - userLatRad);
+      const z = -EARTH_RADIUS * (latRad - userLatRad); // Negative Z for forward direction
       
       // Calculate altitude difference (if available)
       const userAlt = userLocation.altitude || 0;
@@ -76,6 +76,9 @@ export function calculateAgentPositions(
       // Scale position for AR view (divide by factor to make distances manageable)
       // This makes 1 meter in real world = 0.1 units in AR space
       const scaleFactor = 10;
+
+      // For testing, ensure z is always positive (in front of camera)
+      const testZ = Math.abs(z / scaleFactor) + 5; // At least 5 units in front
       
       // Calculate size based on agent type and distance
       const baseSize = getBaseSizeForAgentType(agent.object_type);
@@ -86,9 +89,9 @@ export function calculateAgentPositions(
       // Store calculated position and metadata
       positions[agent.id] = {
         id: agent.id,
-        position: {
-          x: (x / scaleFactor) + cmVariationX,
-          y: (y / scaleFactor) + cmVariationY + 1.6, // Add eye height
+        position: { 
+          x: (x / scaleFactor) + cmVariationX, 
+          y: (y / scaleFactor) + cmVariationY + 1.6,
           z: (z / scaleFactor) + cmVariationZ,
         },
         size: finalSize,

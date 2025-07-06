@@ -20,8 +20,15 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
   // Calculate agent positions when agents or user location changes
   useEffect(() => {
     if (agents.length > 0 && userLocation) {
+      console.log('🔄 Calculating positions for', agents.length, 'agents');
       const positions = calculateAgentPositions(agents, userLocation, 100);
       setAgentPositions(positions);
+      
+      // Log the calculated positions for debugging
+      console.log('📍 Agent positions calculated:', 
+        Object.keys(positions).length, 
+        'agents positioned'
+      );
     }
   }, [agents, userLocation]);
   
@@ -55,12 +62,18 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
           const positionData = agentPositions[agent.id];
           if (!positionData) return null;
           
-          // Calculate screen position from 3D position
-          // This is a simplified calculation for demo purposes
-          // In a real AR app, this would use proper 3D to screen projection
-          const screenX = (positionData.position.x / positionData.position.z) * 300 + 200;
-          const screenY = 300 - (positionData.position.y / positionData.position.z) * 300;
-          const displaySize = (50 * positionData.size) / (Math.max(0.1, positionData.position.z) * 0.5);
+          // Fixed screen positions for visibility testing
+          // Distribute agents in a grid pattern across the screen
+          const index = agents.findIndex(a => a.id === agent.id);
+          const columns = 3;
+          const spacing = 120;
+          
+          const col = index % columns;
+          const row = Math.floor(index / columns);
+          
+          const screenX = 100 + (col * spacing);
+          const screenY = 150 + (row * spacing);
+          const displaySize = 60;
           
           return (
             <View
@@ -70,8 +83,8 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
                 {
                   left: screenX,
                   top: screenY,
-                  zIndex: Math.round(1000 - positionData.position.z * 10),
-                  opacity: positionData.inRange ? 1 : 0.5,
+                  zIndex: 1000 - index,
+                  opacity: 1,
                 }
               ]}
             >

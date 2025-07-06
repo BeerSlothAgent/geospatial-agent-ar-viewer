@@ -26,24 +26,28 @@ export default function Agent3DObject({ agent, size = 50, onPress }: Agent3DObje
   // Start rotation animation
   useEffect(() => {
     // Rotate Y axis (horizontal spin)
-    rotateY.value = withRepeat(
-      withTiming(360, { 
-        duration: 10000 + Math.random() * 5000, // Random duration for varied speeds
-        easing: Easing.linear 
-      }),
-      -1, // Infinite repetitions
-      false // Don't reverse
-    );
+    setTimeout(() => {
+      rotateY.value = withRepeat(
+        withTiming(360, { 
+          duration: 10000 + Math.random() * 5000, // Random duration for varied speeds
+          easing: Easing.linear 
+        }),
+        -1, // Infinite repetitions
+        false // Don't reverse
+      );
+    }, 100);
     
     // Slight tilt on X axis
-    rotateX.value = withRepeat(
-      withTiming(10, { 
-        duration: 8000 + Math.random() * 4000,
-        easing: Easing.inOut(Easing.sine) 
-      }),
-      -1, // Infinite repetitions
-      true // Reverse (back and forth)
-    );
+    setTimeout(() => {
+      rotateX.value = withRepeat(
+        withTiming(10, { 
+          duration: 8000 + Math.random() * 4000,
+          easing: Easing.inOut(Easing.sine) 
+        }),
+        -1, // Infinite repetitions
+        true // Reverse (back and forth)
+      );
+    }, 200);
   }, []);
 
   // Create animated styles for rotation
@@ -59,13 +63,14 @@ export default function Agent3DObject({ agent, size = 50, onPress }: Agent3DObje
   return (
     <Animated.View style={[styles.container, animatedStyle]}>
       <View 
-        style={[
-          styles.object,
-          { width: size, height: size },
-          getObjectStyle(objectType, objectColor),
-        ]}
+        style={[styles.object, { width: size, height: size }]}
         onTouchEnd={onPress}
-      />
+      >
+        <View style={[
+          styles.objectInner,
+          getObjectStyle(objectType, objectColor),
+        ]} />
+      </View>
     </Animated.View>
   );
 }
@@ -167,11 +172,16 @@ function getObjectStyle(objectType: string, color: string): object {
 const styles = StyleSheet.create({
   container: {
     justifyContent: 'center',
-    alignItems: 'center',
-    perspective: 1000,
+    alignItems: 'center'
   },
   object: {
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'visible',
+  },
+  objectInner: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
   },
 });
