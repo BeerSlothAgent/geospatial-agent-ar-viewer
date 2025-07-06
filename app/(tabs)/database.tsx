@@ -214,22 +214,22 @@ export default function DatabaseScreen() {
             Migration: Clean migration applied ✅
           </Text>
         </View>
-            • Supabase URL: {isSupabaseConfigured ? 'Configured' : 'Missing'}
+      </View>
 
       {/* Error Display */}
-            • Database Client: {supabase ? 'Initialized' : 'Not Initialized'}
+      {error && (
         <View style={styles.errorSection}>
           <AlertCircle size={16} color="#ff6b35" strokeWidth={2} />
-            • Query Method: Direct Table Query (RPC Disabled)
+          <Text style={styles.errorText}>{error}</Text>
         </View>
       )}
-            • Objects Retrieved: {objects.length}
+
       {/* Success Message */}
       {connectionStatus.connected && objects.length > 0 && (
-            • Active Objects: {objects.filter(obj => obj.is_active).length}
+        <View style={styles.successSection}>
           <CheckCircle size={16} color="#00ff88" strokeWidth={2} />
           <Text style={styles.successText}>
-            • Column Issue: updated_at column removed from query
+            Database is connected and working properly!
           </Text>
         </View>
       )}
