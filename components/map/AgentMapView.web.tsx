@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
-import Map, { Marker, Source, Layer } from 'react-map-gl';
 import { Camera, X, Navigation, ArrowLeft } from 'lucide-react-native';
 import { DeployedObject } from '@/types/database';
 import { LocationData } from '@/hooks/useLocation';
@@ -19,6 +18,13 @@ interface AgentMapViewProps {
 
 const { width, height } = Dimensions.get('window');
 
+// Declare global mapboxgl for TypeScript
+declare global {
+  interface Window {
+    mapboxgl: any;
+  }
+}
+
 export default function AgentMapView({
   userLocation,
   agents,
@@ -28,13 +34,79 @@ export default function AgentMapView({
 }: AgentMapViewProps) {
   const [selectedAgent, setSelectedAgent] = useState<DeployedObject | null>(null);
   const [agentsInRange, setAgentsInRange] = useState<DeployedObject[]>([]);
-  const [viewState, setViewState] = useState({
-    longitude: userLocation.longitude,
-    latitude: userLocation.latitude,
-    zoom: 16
-  });
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const map = useRef<any>(null);
+  const markers = useRef<any[]>([]);
   
   const rangeService = RangeDetectionService.getInstance();
+
+  // Load Mapbox GL JS
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // Check if Mapbox GL JS is already loaded
+    if (window.mapboxgl) {
+      setMapLoaded(true);
+      return;
+    }
+
+    // Load Mapbox GL JS CSS
+    const link = document.createElement('link');
+    link.href = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+
+    // Load Mapbox GL JS
+    const script = document.createElement('script');
+    script.src = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js';
+    script.onload = () => {
+      setMapLoaded(true);
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      document.head.removeChild(link);
+      document.head.removeChild(script);
+    };
+  }, []);
+
+  // Initialize map
+  useEffect(() => {
+    if (!mapLoaded || !mapContainer.current || map.current) return;
+
+    window.mapboxgl.accessToken = MAPBOX_TOKEN;
+    
+    map.current = new window.mapboxgl.Map({
+      container: mapContainer.current,
+      style: 'mapbox://styles/mapbox/dark-v10',
+      center: [userLocation.longitude, userLocation.latitude],
+      zoom: 16
+    });
+
+    // Add user location marker
+    const userMarker = document.createElement('div');
+    userMarker.className = 'user-marker';
+    userMarker.style.cssText = `
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background-color: #00d4ff;
+      border: 3px solid white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    `;
+
+    new window.mapboxgl.Marker(userMarker)
+      .setLngLat([userLocation.longitude, userLocation.latitude])
+      .addTo(map.current);
+
+    return () => {
+      if (map.current) {
+        map.current.remove();
+        map.current = null;
+      }
+    };
+  }, [mapLoaded, userLocation]);
 
   // Filter agents in range
   useEffect(() => {
@@ -49,6 +121,131 @@ export default function AgentMapView({
       setAgentsInRange(inRange);
     }
   }, [agents, userLocation]);
+
+  // Update agent markers
+  useEffect(() => {
+    if (!map.current || !mapLoaded) return;
+
+    // Clear existing markers
+    markers.current.forEach(marker => marker.remove());
+    markers.current = [];
+
+    // Add agent markers
+    agents.forEach(agent => {
+      const distance = rangeService.getDistanceToAgent(agent);
+      const inRange = distance !== null && distance <= (agent.visibility_radius || 50);
+      
+      // Create marker element
+      const markerEl = document.createElement('div');
+      markerEl.className = 'agent-marker';
+      markerEl.style.cssText = `
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background-color: ${getAgentMarkerColor(agent.object_type)};
+        border: 2px solid white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 12px;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      `;
+      markerEl.textContent = agent.object_type.charAt(0);
+
+      // Create popup
+      const popup = new window.mapboxgl.Popup({
+        offset: 25,
+        closeButton: false,
+        closeOnClick: false
+      }).setHTML(`
+        <div style="padding: 10px; min-width: 200px;">
+          <h3 style="margin: 0 0 8px 0; color: #333;">${agent.name}</h3>
+          <p style="margin: 0 0 8px 0; color: #666; font-size: 14px;">${agent.object_type}</p>
+          ${agent.description ? `<p style="margin: 0 0 12px 0; color: #666; font-size: 12px;">${agent.description}</p>` : ''}
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <span style="color: #666; font-size: 12px;">Distance: ${Math.round(distance || 0)}m</span>
+            <span style="color: #666; font-size: 12px;">Range: ${agent.visibility_radius || 50}m</span>
+          </div>
+          <button 
+            onclick="window.selectAgent('${agent.id}')"
+            style="
+              width: 100%;
+              padding: 8px;
+              background-color: #00d4ff;
+              color: white;
+              border: none;
+              border-radius: 4px;
+              cursor: pointer;
+              font-weight: 600;
+            "
+          >
+            Interact
+          </button>
+        </div>
+      `);
+
+      // Add marker with popup
+      const marker = new window.mapboxgl.Marker(markerEl)
+        .setLngLat([agent.longitude, agent.latitude])
+        .setPopup(popup)
+        .addTo(map.current);
+
+      markers.current.push(marker);
+
+      // Add click handler
+      markerEl.addEventListener('click', () => {
+        setSelectedAgent(agent);
+        if (onAgentSelect) {
+          onAgentSelect(agent);
+        }
+      });
+
+      // Add range circle
+      if (map.current.getSource(`circle-${agent.id}`)) {
+        map.current.removeLayer(`circle-fill-${agent.id}`);
+        map.current.removeLayer(`circle-stroke-${agent.id}`);
+        map.current.removeSource(`circle-${agent.id}`);
+      }
+
+      const circleData = createCircleData(agent);
+      map.current.addSource(`circle-${agent.id}`, {
+        type: 'geojson',
+        data: circleData
+      });
+
+      map.current.addLayer({
+        id: `circle-fill-${agent.id}`,
+        type: 'fill',
+        source: `circle-${agent.id}`,
+        paint: {
+          'fill-color': getAgentMarkerColor(agent.object_type),
+          'fill-opacity': 0.1
+        }
+      });
+
+      map.current.addLayer({
+        id: `circle-stroke-${agent.id}`,
+        type: 'line',
+        source: `circle-${agent.id}`,
+        paint: {
+          'line-color': getAgentMarkerColor(agent.object_type),
+          'line-width': 2,
+          'line-opacity': 0.8
+        }
+      });
+    });
+
+    // Global function for popup interactions
+    (window as any).selectAgent = (agentId: string) => {
+      const agent = agents.find(a => a.id === agentId);
+      if (agent && onAgentSelect) {
+        onAgentSelect(agent);
+      }
+    };
+  }, [agents, mapLoaded]);
 
   // Get agent marker color based on type
   const getAgentMarkerColor = (agentType: string): string => {
@@ -71,14 +268,6 @@ export default function AgentMapView({
     };
     
     return colorMap[agentType] || '#00d4ff';
-  };
-
-  // Handle agent marker press
-  const handleAgentPress = (agent: DeployedObject) => {
-    setSelectedAgent(agent);
-    if (onAgentSelect) {
-      onAgentSelect(agent);
-    }
   };
 
   // Create circle data for agent ranges
@@ -135,84 +324,16 @@ export default function AgentMapView({
         </View>
       </View>
 
-      {/* Map */}
-      <View style={styles.mapContainer}>
-        <Map
-          {...viewState}
-          onMove={evt => setViewState(evt.viewState)}
-          style={{ width: '100%', height: '100%' }}
-          mapStyle="mapbox://styles/mapbox/dark-v10"
-          mapboxAccessToken={MAPBOX_TOKEN}
-        >
-          {/* User Location Marker */}
-          <Marker
-            longitude={userLocation.longitude}
-            latitude={userLocation.latitude}
-            anchor="bottom"
-          >
-            <View style={styles.userMarker}>
-              <View style={styles.userMarkerInner} />
-            </View>
-          </Marker>
-
-          {/* Agent Range Circles */}
-          {agents.map((agent) => {
-            const circleData = createCircleData(agent);
-            return (
-              <Source key={`circle-${agent.id}`} id={`circle-${agent.id}`} type="geojson" data={circleData as any}>
-                <Layer
-                  id={`circle-fill-${agent.id}`}
-                  type="fill"
-                  paint={{
-                    'fill-color': circleData.properties.color,
-                    'fill-opacity': 0.1
-                  }}
-                />
-                <Layer
-                  id={`circle-stroke-${agent.id}`}
-                  type="line"
-                  paint={{
-                    'line-color': circleData.properties.color,
-                    'line-width': 2,
-                    'line-opacity': 0.8
-                  }}
-                />
-              </Source>
-            );
-          })}
-
-          {/* Agent Markers */}
-          {agents.map((agent) => {
-            const distance = rangeService.getDistanceToAgent(agent);
-            const inRange = distance !== null && distance <= (agent.visibility_radius || 50);
-            
-            return (
-              <Marker
-                key={agent.id}
-                longitude={agent.longitude}
-                latitude={agent.latitude}
-                anchor="bottom"
-                onClick={() => handleAgentPress(agent)}
-              >
-                <View style={[
-                  styles.agentMarker,
-                  { backgroundColor: getAgentMarkerColor(agent.object_type) }
-                ]}>
-                  <Text style={styles.agentMarkerText}>
-                    {agent.object_type.charAt(0)}
-                  </Text>
-                </View>
-                <View style={styles.agentLabel}>
-                  <Text style={styles.agentLabelText}>{agent.name}</Text>
-                  <Text style={styles.agentDistance}>
-                    {distance ? Math.round(distance) : '?'}m
-                  </Text>
-                </View>
-              </Marker>
-            );
-          })}
-        </Map>
-      </View>
+      {/* Map Container */}
+      <div 
+        ref={mapContainer} 
+        style={{ 
+          flex: 1, 
+          width: '100%', 
+          height: '100%',
+          position: 'relative'
+        }} 
+      />
 
       {/* Bottom Info Panel */}
       <View style={styles.bottomPanel}>
@@ -305,6 +426,12 @@ export default function AgentMapView({
           </View>
         </View>
       </View>
+
+      {!mapLoaded && (
+        <View style={styles.loadingOverlay}>
+          <Text style={styles.loadingText}>Loading Map...</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -346,66 +473,6 @@ const styles = StyleSheet.create({
   headerButton: {
     padding: 8,
     marginLeft: 8,
-  },
-  mapContainer: {
-    flex: 1,
-    position: 'relative',
-  },
-  userMarker: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#00d4ff',
-    borderWidth: 3,
-    borderColor: 'white',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  userMarkerInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: 'white',
-    margin: 3,
-  },
-  agentMarker: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'white',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  agentMarkerText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  agentLabel: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginTop: 5,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  agentLabelText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
-  agentDistance: {
-    fontSize: 10,
-    color: '#6B7280',
   },
   bottomPanel: {
     backgroundColor: '#1a1a1a',
@@ -551,5 +618,20 @@ const styles = StyleSheet.create({
   legendText: {
     fontSize: 11,
     color: '#aaa',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  loadingText: {
+    color: '#fff',
+    fontSize: 16,
   },
 });
