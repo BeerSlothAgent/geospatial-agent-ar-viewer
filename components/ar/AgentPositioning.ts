@@ -76,9 +76,6 @@ export function calculateAgentPositions(
       // Scale position for AR view (divide by factor to make distances manageable)
       // This makes 1 meter in real world = 0.1 units in AR space
       const scaleFactor = 10;
-
-      // For testing, ensure z is always positive (in front of camera)
-      const testZ = Math.abs(z / scaleFactor) + 5; // At least 5 units in front
       
       // Calculate size based on agent type and distance
       const baseSize = getBaseSizeForAgentType(agent.object_type);
@@ -92,7 +89,7 @@ export function calculateAgentPositions(
         position: { 
           x: (x / scaleFactor) + cmVariationX, 
           y: (y / scaleFactor) + cmVariationY + 1.6,
-          z: (z / scaleFactor) + cmVariationZ,
+          z: Math.abs(z / scaleFactor) + cmVariationZ + 5, // Ensure objects are in front of camera
         },
         size: finalSize,
         distance: distance,

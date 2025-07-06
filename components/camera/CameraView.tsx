@@ -451,7 +451,7 @@ export default function ARCameraView({
           {/* AR Status Info */}
           <View style={styles.arStatus}>
             <Text style={styles.arStatusText}>
-              AR Objects: {objects.length}
+              3D Agents: {objects.length}
             </Text>
             {userLocation && (
               <Text style={styles.arStatusText}>
@@ -515,8 +515,8 @@ export default function ARCameraView({
           
           <Text style={styles.objectsAvailable}>
             {objects.length > 0 
-              ? `${objects.length} objects visible • Tap to interact`
-              : 'Demo objects available for testing'
+              ? `${objects.length} 3D agents visible • Tap to interact`
+              : 'Demo agents available for testing'
             }
           </Text>
         </View>
@@ -559,7 +559,7 @@ export default function ARCameraView({
         <View style={styles.arIndicators}>
           <Animated.View style={[styles.arIndicator, pulseStyle]}>
             <Text style={styles.arIndicatorText}>{objects.length}</Text>
-            <Text style={styles.arIndicatorLabel}>Visible</Text>
+            <Text style={styles.arIndicatorLabel}>Agents</Text>
           </Animated.View>
         </View>
       </Animated.View>

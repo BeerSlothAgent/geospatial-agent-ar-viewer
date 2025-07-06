@@ -57,7 +57,7 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
   return (
     <View style={styles.container}>
       {/* 3D Objects Layer */}
-      <View style={styles.objectsLayer}>
+      <View style={styles.objectsLayer} pointerEvents="box-none">
         {agents.map((agent) => {
           const positionData = agentPositions[agent.id];
           if (!positionData) return null;
@@ -67,22 +67,25 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
           const index = agents.findIndex(a => a.id === agent.id);
           const columns = 3;
           const spacing = 120;
-          
+
           const col = index % columns;
           const row = Math.floor(index / columns);
-          
+
           const screenX = 100 + (col * spacing);
           const screenY = 150 + (row * spacing);
-          const displaySize = 60;
-          
+          // Vary size based on agent type and distance
+          const baseSize = getBaseSizeForAgentType(agent.object_type);
+          const distanceFactor = Math.max(0.5, 1 - (positionData.distance / 100) * 0.5);
+          const displaySize = baseSize * distanceFactor * 60;
+
           return (
             <View
               key={agent.id}
               style={[
                 styles.agentContainer,
                 {
-                  left: screenX,
-                  top: screenY,
+                  left: screenX - 30, // Adjust for better centering
+                  top: screenY - 30,  // Adjust for better centering
                   zIndex: 1000 - index,
                   opacity: 1,
                 }
@@ -98,7 +101,7 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
               <View style={styles.agentLabel}>
                 <Text style={styles.agentName} numberOfLines={1}>
                   {agent.name}
-                </Text>
+                </Text> 
                 <Text style={styles.agentDistance}>
                   {positionData.distance.toFixed(1)}m
                 </Text>
@@ -180,23 +183,45 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
   );
 }
 
+// Get base size multiplier for agent type
+function getBaseSizeForAgentType(agentType?: string): number {
+  const baseSizes: Record<string, number> = {
+    'ai_agent': 0.8,
+    'study_buddy': 0.6,
+    'tutor': 1.0,
+    'landmark': 1.2,
+    'building': 1.4,
+    'Intelligent Assistant': 1.0,
+    'Content Creator': 0.7,
+    'Local Services': 0.9,
+    'Tutor/Teacher': 1.1,
+    '3D World Modelling': 1.3,
+    'Game Agent': 0.8
+  };
+  
+  return baseSizes[agentType || ''] || 0.8;
+}
+
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
     top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    left: 0, 
+    right: 0, 
+    bottom: 0, 
     pointerEvents: 'box-none',
   },
   objectsLayer: {
     flex: 1,
     position: 'relative',
+    pointerEvents: 'box-none',
   },
   agentContainer: {
     position: 'absolute',
     alignItems: 'center',
-    transform: [{ translate: ['-50%', '-50%'] }],
+    width: 60,
+    height: 60,
+    justifyContent: 'center',
   },
   agentLabel: {
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
@@ -205,7 +230,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 8,
     alignItems: 'center',
-    minWidth: 80,
+    minWidth: 100,
   },
   agentName: {
     color: 'white',

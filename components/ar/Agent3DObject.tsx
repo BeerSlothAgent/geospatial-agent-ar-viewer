@@ -26,28 +26,30 @@ export default function Agent3DObject({ agent, size = 50, onPress }: Agent3DObje
   // Start rotation animation
   useEffect(() => {
     // Rotate Y axis (horizontal spin)
-    setTimeout(() => {
-      rotateY.value = withRepeat(
-        withTiming(360, { 
-          duration: 10000 + Math.random() * 5000, // Random duration for varied speeds
-          easing: Easing.linear 
-        }),
-        -1, // Infinite repetitions
-        false // Don't reverse
-      );
-    }, 100);
+    rotateY.value = withRepeat(
+      withTiming(360, { 
+        duration: 10000 + Math.random() * 5000, // Random duration for varied speeds
+        easing: Easing.linear 
+      }),
+      -1, // Infinite repetitions
+      false // Don't reverse
+    );
     
     // Slight tilt on X axis
-    setTimeout(() => {
-      rotateX.value = withRepeat(
-        withTiming(10, { 
-          duration: 8000 + Math.random() * 4000,
-          easing: Easing.inOut(Easing.sine) 
-        }),
-        -1, // Infinite repetitions
-        true // Reverse (back and forth)
-      );
-    }, 200);
+    rotateX.value = withRepeat(
+      withTiming(10, { 
+        duration: 8000 + Math.random() * 4000,
+        easing: Easing.inOut(Easing.sine) 
+      }),
+      -1, // Infinite repetitions
+      true // Reverse (back and forth)
+    );
+    
+    // Cleanup animation on unmount
+    return () => {
+      rotateY.value = 0;
+      rotateX.value = 0;
+    };
   }, []);
 
   // Create animated styles for rotation
@@ -63,7 +65,14 @@ export default function Agent3DObject({ agent, size = 50, onPress }: Agent3DObje
   return (
     <Animated.View style={[styles.container, animatedStyle]}>
       <View 
-        style={[styles.object, { width: size, height: size }]}
+        style={[
+          styles.object, 
+          { 
+            width: size, 
+            height: size,
+            transform: [{ perspective: 800 }]
+          }
+        ]}
         onTouchEnd={onPress}
       >
         <View style={[
@@ -173,15 +182,18 @@ const styles = StyleSheet.create({
   container: {
     justifyContent: 'center',
     alignItems: 'center'
+    // Don't set perspective here, it will be overridden by the transform
   },
   object: {
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'visible',
+    backfaceVisibility: 'visible',
   },
   objectInner: {
     position: 'absolute',
     width: '100%',
     height: '100%',
+    backfaceVisibility: 'visible',
   },
 });
