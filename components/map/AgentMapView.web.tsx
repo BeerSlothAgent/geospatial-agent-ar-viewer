@@ -75,7 +75,7 @@ export default function AgentMapView({
   useEffect(() => {
     if (!mapLoaded || !mapContainer.current || map.current) return;
 
-    // Add a small delay to ensure CSS styles are fully loaded
+    // Add a longer delay to ensure CSS styles are fully loaded
     setTimeout(() => {
       window.mapboxgl.accessToken = MAPBOX_TOKEN;
       
@@ -101,7 +101,17 @@ export default function AgentMapView({
       new window.mapboxgl.Marker(userMarker)
         .setLngLat([userLocation.longitude, userLocation.latitude])
         .addTo(map.current);
-    }, 100);
+
+      // Wait for map to load before adding markers
+      map.current.on('load', () => {
+        console.log('✅ Mapbox map loaded successfully');
+      });
+
+      // Handle style loading errors
+      map.current.on('error', (e) => {
+        console.error('❌ Mapbox error:', e);
+      });
+    }, 500); // Increased delay to 500ms to ensure styles are loaded
 
     return () => {
       if (map.current) {
@@ -128,7 +138,29 @@ export default function AgentMapView({
   // Update agent markers
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
+    
+    // Wait until the style is fully loaded
+    if (!map.current.isStyleLoaded()) {
+      console.log('⏳ Waiting for map style to load before adding markers...');
+      
+      // Check if style is loaded, if not, wait and try again
+      const checkStyleLoaded = () => {
+        if (map.current && map.current.isStyleLoaded()) {
+          updateAgentMarkers();
+        } else {
+          setTimeout(checkStyleLoaded, 100);
+        }
+      };
+      
+      checkStyleLoaded();
+      return;
+    }
+    
+    updateAgentMarkers();
+  }, [agents, mapLoaded]);
 
+  // Function to update agent markers
+  const updateAgentMarkers = () => {
     // Clear existing markers
     markers.current.forEach(marker => marker.remove());
     markers.current = [];
@@ -138,6 +170,7 @@ export default function AgentMapView({
       const distance = rangeService.getDistanceToAgent(agent);
       const inRange = distance !== null && distance <= (agent.visibility_radius || 50);
       
+      try {
       // Create marker element
       const markerEl = document.createElement('div');
       markerEl.className = 'agent-marker';
@@ -207,38 +240,45 @@ export default function AgentMapView({
       });
 
       // Add range circle
-      if (map.current.getSource(`circle-${agent.id}`)) {
-        map.current.removeLayer(`circle-fill-${agent.id}`);
-        map.current.removeLayer(`circle-stroke-${agent.id}`);
-        map.current.removeSource(`circle-${agent.id}`);
+      try {
+        if (map.current.getSource(`circle-${agent.id}`)) {
+          map.current.removeLayer(`circle-fill-${agent.id}`);
+          map.current.removeLayer(`circle-stroke-${agent.id}`);
+          map.current.removeSource(`circle-${agent.id}`);
+        }
+
+        const circleData = createCircleData(agent);
+        map.current.addSource(`circle-${agent.id}`, {
+          type: 'geojson',
+          data: circleData
+        });
+
+        map.current.addLayer({
+          id: `circle-fill-${agent.id}`,
+          type: 'fill',
+          source: `circle-${agent.id}`,
+          paint: {
+            'fill-color': getAgentMarkerColor(agent.object_type),
+            'fill-opacity': 0.1
+          }
+        });
+
+        map.current.addLayer({
+          id: `circle-stroke-${agent.id}`,
+          type: 'line',
+          source: `circle-${agent.id}`,
+          paint: {
+            'line-color': getAgentMarkerColor(agent.object_type),
+            'line-width': 2,
+            'line-opacity': 0.8
+          }
+        });
+      } catch (circleError) {
+        console.warn(`Failed to add circle for agent ${agent.id}:`, circleError);
       }
-
-      const circleData = createCircleData(agent);
-      map.current.addSource(`circle-${agent.id}`, {
-        type: 'geojson',
-        data: circleData
-      });
-
-      map.current.addLayer({
-        id: `circle-fill-${agent.id}`,
-        type: 'fill',
-        source: `circle-${agent.id}`,
-        paint: {
-          'fill-color': getAgentMarkerColor(agent.object_type),
-          'fill-opacity': 0.1
-        }
-      });
-
-      map.current.addLayer({
-        id: `circle-stroke-${agent.id}`,
-        type: 'line',
-        source: `circle-${agent.id}`,
-        paint: {
-          'line-color': getAgentMarkerColor(agent.object_type),
-          'line-width': 2,
-          'line-opacity': 0.8
-        }
-      });
+      } catch (markerError) {
+        console.warn(`Failed to add marker for agent ${agent.id}:`, markerError);
+      }
     });
 
     // Global function for popup interactions
@@ -248,7 +288,7 @@ export default function AgentMapView({
         onAgentSelect(agent);
       }
     };
-  }, [agents, mapLoaded]);
+  };
 
   // Get agent marker color based on type
   const getAgentMarkerColor = (agentType: string): string => {
@@ -303,6 +343,13 @@ export default function AgentMapView({
 
   return (
     <View style={styles.container}>
+      {/* Loading Overlay - Show while map is initializing */}
+      {!mapLoaded && (
+        <View style={styles.loadingOverlay}>
+          <Text style={styles.loadingText}>Loading Map...</Text>
+        </View>
+      )}
+
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
@@ -430,11 +477,6 @@ export default function AgentMapView({
         </View>
       </View>
 
-      {!mapLoaded && (
-        <View style={styles.loadingOverlay}>
-          <Text style={styles.loadingText}>Loading Map...</Text>
-        </View>
-      )}
     </View>
   );
 }
