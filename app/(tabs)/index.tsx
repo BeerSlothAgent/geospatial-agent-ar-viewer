@@ -746,640 +746,622 @@ export default function HomePage() {
               <View style={styles.agentBadge}>
                 <Text style={styles.agentBadgeText}>
                   {agentsInRange.length} agent{agentsInRange.length !== 1 ? 's' : ''} in range
-          <View style={styles.headerRight}>
-            <TouchableOpacity
-              style={styles.notificationButton}
-              onPress={handleNotificationPress}
-              activeOpacity={0.8}
-            >
-              <Bell size={20} color={agentsInRange.length > 0 ? "#F59E0B" : "#6B7280"} strokeWidth={2} />
-              {agentsInRange.length > 0 && (
-                <View style={styles.notificationBadge}>
-                  <Text style={styles.notificationBadgeText}>
-                    {agentsInRange.length}
                   </Text>
                 </View>
               )}
-            </TouchableOpacity>
+            </View>
             
-            <TouchableOpacity
-              style={styles.walletButton}
-              onPress={() => setShowWalletModal(true)}
-              activeOpacity={0.8}
-            >
-              <Wallet size={20} color="#9333ea" strokeWidth={2} />
-              <Text style={styles.walletButtonText}>Wallet</Text>
-            </TouchableOpacity>
+            <View style={styles.walletModalContent}>
+              <ThirdwebWalletConnect />
+            </View>
           </View>
-        </View>
-      </Modal>
-      
-      {/* Map Modal */}
-      <Modal
-        visible={showMapModal}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowMapModal(false)}
-      >
-        <View style={styles.mapModalContainer}>
-          {location && (
-            <AgentMapView
-              userLocation={location}
-              agents={nearbyObjects}
-              onClose={() => setShowMapModal(false)}
-              onSwitchToCamera={() => {
-                setShowMapModal(false);
-                handleStartAR();
-              }}
-              onAgentSelect={(agent) => {
-                console.log('Selected agent from map:', agent.name);
-                setShowMapModal(false);
-                // Optionally start AR mode focused on this agent
-                handleStartAR();
-              }}
-            />
-          )}
-        </View>
-      </Modal>
-    </>
-  );
-}
-
-// Feature Card Component
-function FeatureCard({ icon, title, description, delay }: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  delay: number;
-}) {
-  const animValue = useSharedValue(0);
-  
-  useEffect(() => {
-    animValue.value = withDelay(
-      delay,
-      withTiming(1, { duration: 600 })
+        </Modal>
+        
+        {/* Map Modal */}
+        <Modal
+          visible={showMapModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowMapModal(false)}
+        >
+          <View style={styles.mapModalContainer}>
+            {location && (
+              <AgentMapView
+                userLocation={location}
+                agents={nearbyObjects}
+                onClose={() => setShowMapModal(false)}
+                onSwitchToCamera={() => {
+                  setShowMapModal(false);
+                  handleStartAR();
+                }}
+                onAgentSelect={(agent) => {
+                  console.log('Selected agent from map:', agent.name);
+                  setShowMapModal(false);
+                  // Optionally start AR mode focused on this agent
+                  handleStartAR();
+                }}
+              />
+            )}
+          </View>
+        </Modal>
+      </>
     );
-  }, []);
+  }
   
-  const animStyle = useAnimatedStyle(() => ({
-    opacity: animValue.value,
-    transform: [
-      { translateY: interpolate(animValue.value, [0, 1], [30, 0]) },
-      { scale: interpolate(animValue.value, [0, 1], [0.9, 1]) },
-    ],
-  }));
+  // Feature Card Component
+  function FeatureCard({ icon, title, description, delay }: {
+    icon: React.ReactNode;
+    title: string;
+    description: string;
+    delay: number;
+  }) {
+    const animValue = useSharedValue(0);
+    
+    useEffect(() => {
+      animValue.value = withDelay(
+        delay,
+        withTiming(1, { duration: 600 })
+      );
+    }, []);
+    
+    const animStyle = useAnimatedStyle(() => ({
+      opacity: animValue.value,
+      transform: [
+        { translateY: interpolate(animValue.value, [0, 1], [30, 0]) },
+        { scale: interpolate(animValue.value, [0, 1], [0.9, 1]) },
+      ],
+    }));
+    
+    return (
+      <Animated.View style={[styles.featureCard, animStyle]}>
+        <View style={styles.featureIcon}>
+          {icon}
+        </View>
+        <Text style={styles.featureTitle}>{title}</Text>
+        <Text style={styles.featureDescription}>{description}</Text>
+      </Animated.View>
+    );
+  }
   
-  return (
-    <Animated.View style={[styles.featureCard, animStyle]}>
-      <View style={styles.featureIcon}>
-        {icon}
-      </View>
-      <Text style={styles.featureTitle}>{title}</Text>
-      <Text style={styles.featureDescription}>{description}</Text>
-    </Animated.View>
-  );
-}
-
-// Device Card Component
-function DeviceCard({ icon, title, description, status }: {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  status: string;
-}) {
-  return (
-    <View style={styles.deviceCard}>
-      <View style={styles.deviceIcon}>
-        {icon}
-      </View>
-      <Text style={styles.deviceTitle}>{title}</Text>
-      <Text style={styles.deviceDescription}>{description}</Text>
-      <View style={[
-        styles.statusBadge,
-        { backgroundColor: status === 'Supported' ? '#00ff8820' : '#ff6b3520' }
-      ]}>
-        <Text style={[
-          styles.statusBadgeText,
-          { color: status === 'Supported' ? '#00ff88' : '#ff6b35' }
+  // Device Card Component
+  function DeviceCard({ icon, title, description, status }: {
+    icon: React.ReactNode;
+    title: string;
+    description: string;
+    status: string;
+  }) {
+    return (
+      <View style={styles.deviceCard}>
+        <View style={styles.deviceIcon}>
+          {icon}
+        </View>
+        <Text style={styles.deviceTitle}>{title}</Text>
+        <Text style={styles.deviceDescription}>{description}</Text>
+        <View style={[
+          styles.statusBadge,
+          { backgroundColor: status === 'Supported' ? '#00ff8820' : '#ff6b3520' }
         ]}>
-          {status}
+          <Text style={[
+            styles.statusBadgeText,
+            { color: status === 'Supported' ? '#00ff88' : '#ff6b35' }
+          ]}>
+            {status}
+          </Text>
+        </View>
+      </View>
+    );
+  }
+  
+  // Status Item Component
+  function StatusItem({ label, status }: { label: string; status: boolean }) {
+    return (
+      <View style={styles.statusItem}>
+        <CheckCircle 
+          size={16} 
+          color={status ? '#00ff88' : '#666'} 
+          strokeWidth={2} 
+        />
+        <Text style={[styles.statusItemText, { color: status ? '#fff' : '#666' }]}>
+          {label}
         </Text>
       </View>
-    </View>
-  );
-}
-
-// Status Item Component
-function StatusItem({ label, status }: { label: string; status: boolean }) {
-  return (
-    <View style={styles.statusItem}>
-      <CheckCircle 
-        size={16} 
-        color={status ? '#00ff88' : '#666'} 
-        strokeWidth={2} 
-      />
-      <Text style={[styles.statusItemText, { color: status ? '#fff' : '#666' }]}>
-        {label}
-      </Text>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0a0a0a',
-  },
+    );
+  }
   
-  // Header
-  headerContainer: {
-    backgroundColor: '#0a0a0a',
-    paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1a1a1a',
-  },
-  headerContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  headerLeft: {
-    flex: 1,
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#fff',
-    marginBottom: 2,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#00d4ff',
-    fontWeight: '500',
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  notificationButton: {
-    position: 'relative',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#1a1a1a',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  notificationBadge: {
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#F59E0B',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#0a0a0a',
-  },
-  notificationBadgeText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  walletButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1a1a1a',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#9333ea',
-    gap: 8,
-  },
-  agentBadge: {
-    backgroundColor: 'rgba(245, 158, 11, 0.2)',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-    marginTop: 4,
-    alignSelf: 'flex-start',
-  },
-  agentBadgeText: {
-    color: '#F59E0B',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  walletButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#9333ea',
-  },
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#0a0a0a',
+    },
+    
+    // Header
+    headerContainer: {
+      backgroundColor: '#0a0a0a',
+      paddingTop: 60,
+      paddingBottom: 20,
+      paddingHorizontal: 24,
+      borderBottomWidth: 1,
+      borderBottomColor: '#1a1a1a',
+    },
+    headerContent: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    headerLeft: {
+      flex: 1,
+    },
+    headerTitle: {
+      fontSize: 24,
+      fontWeight: '800',
+      color: '#fff',
+      marginBottom: 2,
+    },
+    headerSubtitle: {
+      fontSize: 14,
+      color: '#00d4ff',
+      fontWeight: '500',
+    },
+    headerRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    notificationButton: {
+      position: 'relative',
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: '#1a1a1a',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    notificationBadge: {
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      width: 18,
+      height: 18,
+      borderRadius: 9,
+      backgroundColor: '#F59E0B',
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderWidth: 2,
+      borderColor: '#0a0a0a',
+    },
+    notificationBadgeText: {
+      color: 'white',
+      fontSize: 10,
+      fontWeight: 'bold',
+    },
+    walletButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#1a1a1a',
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#9333ea',
+      gap: 8,
+    },
+    agentBadge: {
+      backgroundColor: 'rgba(245, 158, 11, 0.2)',
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 12,
+      marginTop: 4,
+      alignSelf: 'flex-start',
+    },
+    agentBadgeText: {
+      color: '#F59E0B',
+      fontSize: 12,
+      fontWeight: '500',
+    },
+    walletButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: '#9333ea',
+    },
+    
+    // Wallet Modal
+    walletModalContainer: {
+      flex: 1,
+      backgroundColor: '#f9fafb',
+    },
+    walletModalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: 24,
+      paddingVertical: 20,
+      paddingTop: 60,
+      backgroundColor: '#fff',
+      borderBottomWidth: 1,
+      borderBottomColor: '#e5e7eb',
+    },
+    walletModalTitle: {
+      fontSize: 20,
+      fontWeight: '700',
+      color: '#111827',
+    },
+    walletModalClose: {
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      backgroundColor: '#9333ea',
+      borderRadius: 8,
+    },
+    walletModalCloseText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: '#fff',
+    },
+    walletModalContent: {
+      flex: 1,
+      backgroundColor: '#f9fafb',
+    },
+    mapModalContainer: {
+      flex: 1,
+      backgroundColor: '#0a0a0a',
+    },
+    
+    // Hero Section
+    heroSection: {
+      height: screenHeight * 0.75,
+      position: 'relative',
+      justifyContent: 'center',
+      alignItems: 'center',
+      overflow: 'hidden',
+    },
+    heroBackground: {
+      position: 'absolute',
+      top: -100,
+      right: -100,
+      width: 300,
+      height: 300,
+    },
+    gradientOrb: {
+      width: '100%',
+      height: '100%',
+      borderRadius: 150,
+      backgroundColor: '#00d4ff',
+      opacity: 0.1,
+    },
+    heroContent: {
+      alignItems: 'center',
+      paddingHorizontal: 24,
+      zIndex: 1,
+    },
+    logoContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 32,
+    },
+    logoIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 12,
+      backgroundColor: '#00d4ff20',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 12,
+    },
+    logoText: {
+      fontSize: 24,
+      fontWeight: '700',
+      color: '#fff',
+    },
+    heroTitle: {
+      fontSize: 42,
+      fontWeight: '800',
+      color: '#fff',
+      textAlign: 'center',
+      lineHeight: 48,
+      marginBottom: 16,
+    },
+    heroTitleAccent: {
+      color: '#00d4ff',
+    },
+    heroSubtitle: {
+      fontSize: 16,
+      color: '#aaa',
+      textAlign: 'center',
+      lineHeight: 24,
+      marginBottom: 40,
+      maxWidth: 320,
+    },
+    heroButtons: {
+      alignItems: 'center',
+      gap: 16,
+      marginBottom: 32,
+    },
+    primaryButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#00d4ff',
+      paddingHorizontal: 32,
+      paddingVertical: 16,
+      borderRadius: 12,
+      gap: 8,
+      minWidth: 280,
+      justifyContent: 'center',
+    },
+    primaryButtonDisabled: {
+      backgroundColor: '#333',
+    },
+    primaryButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#000',
+      textAlign: 'center',
+    },
+    primaryButtonTextDisabled: {
+      color: '#666',
+    },
+    secondaryButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 24,
+      paddingVertical: 12,
+      gap: 8,
+    },
+    secondaryButtonText: {
+      fontSize: 16,
+      fontWeight: '500',
+      color: '#00d4ff',
+    },
   
-  // Wallet Modal
-  walletModalContainer: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-  },
-  walletModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 20,
-    paddingTop: 60,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
-  },
-  walletModalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  walletModalClose: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#9333ea',
-    borderRadius: 8,
-  },
-  walletModalCloseText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  walletModalContent: {
-    flex: 1,
-    backgroundColor: '#f9fafb',
-  },
-  mapModalContainer: {
-    flex: 1,
-    backgroundColor: '#0a0a0a',
-  },
+    // System Status
+    systemStatus: {
+      backgroundColor: '#1a1a1a',
+      borderRadius: 12,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: '#333',
+      minWidth: 300,
+    },
+    systemStatusTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: '#00d4ff',
+      marginBottom: 12,
+      textAlign: 'center',
+    },
+    systemStatusItems: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 8,
+      justifyContent: 'center',
+    },
+    
+    // Location Section
+    locationSection: {
+      paddingHorizontal: 24,
+      paddingVertical: 40,
+    },
+    preciseLocationContainer: {
+      marginTop: 20,
+    },
+    expandButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: '#333',
+      borderRadius: 8,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      marginTop: 12,
+      gap: 8,
+    },
+    expandButtonText: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: '#00d4ff',
+    },
   
-  // Hero Section
-  heroSection: {
-    height: screenHeight * 0.75,
-    position: 'relative',
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  heroBackground: {
-    position: 'absolute',
-    top: -100,
-    right: -100,
-    width: 300,
-    height: 300,
-  },
-  gradientOrb: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 150,
-    backgroundColor: '#00d4ff',
-    opacity: 0.1,
-  },
-  heroContent: {
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    zIndex: 1,
-  },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  logoIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#00d4ff20',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  logoText: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  heroTitle: {
-    fontSize: 42,
-    fontWeight: '800',
-    color: '#fff',
-    textAlign: 'center',
-    lineHeight: 48,
-    marginBottom: 16,
-  },
-  heroTitleAccent: {
-    color: '#00d4ff',
-  },
-  heroSubtitle: {
-    fontSize: 16,
-    color: '#aaa',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 40,
-    maxWidth: 320,
-  },
-  heroButtons: {
-    alignItems: 'center',
-    gap: 16,
-    marginBottom: 32,
-  },
-  primaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#00d4ff',
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
-    minWidth: 280,
-    justifyContent: 'center',
-  },
-  primaryButtonDisabled: {
-    backgroundColor: '#333',
-  },
-  primaryButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-    textAlign: 'center',
-  },
-  primaryButtonTextDisabled: {
-    color: '#666',
-  },
-  secondaryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    gap: 8,
-  },
-  secondaryButtonText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#00d4ff',
-  },
-
-  // System Status
-  systemStatus: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#333',
-    minWidth: 300,
-  },
-  systemStatusTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#00d4ff',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  systemStatusItems: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    justifyContent: 'center',
-  },
-  
-  // Location Section
-  locationSection: {
-    paddingHorizontal: 24,
-    paddingVertical: 40,
-  },
-  preciseLocationContainer: {
-    marginTop: 20,
-  },
-  expandButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#333',
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginTop: 12,
-    gap: 8,
-  },
-  expandButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#00d4ff',
-  },
-
-  // Database Section
-  databaseSection: {
-    paddingHorizontal: 24,
-    paddingVertical: 40,
-  },
-  objectsContainer: {
-    marginTop: 20,
-  },
-  
-  // Features Section
-  featuresSection: {
-    paddingHorizontal: 24,
-    paddingVertical: 60,
-  },
-  sectionTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#fff',
-    textAlign: 'center',
-    marginBottom: 40,
-  },
-  featuresGrid: {
-    gap: 20,
-  },
-  featureCard: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 16,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  featureIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#00d4ff20',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  featureTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 8,
-  },
-  featureDescription: {
-    fontSize: 14,
-    color: '#aaa',
-    lineHeight: 20,
-  },
-  
-  // Demo Section
-  demoSection: {
-    paddingHorizontal: 24,
-    paddingBottom: 60,
-  },
-  demoContainer: {
-    position: 'relative',
-    borderRadius: 16,
-    overflow: 'hidden',
-    backgroundColor: '#1a1a1a',
-  },
-  demoImage: {
-    width: '100%',
-    height: 200,
-  },
-  demoOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  playButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#00d4ff',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  demoInfo: {
-    padding: 20,
-  },
-  demoTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 8,
-  },
-  demoDescription: {
-    fontSize: 14,
-    color: '#aaa',
-    lineHeight: 20,
-  },
-  
-  // Compatibility Section
-  compatibilitySection: {
-    paddingHorizontal: 24,
-    paddingBottom: 60,
-  },
-  deviceGrid: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  deviceCard: {
-    flex: 1,
-    backgroundColor: '#1a1a1a',
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  deviceIcon: {
-    marginBottom: 16,
-  },
-  deviceTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  deviceDescription: {
-    fontSize: 12,
-    color: '#aaa',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  statusBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  
-  // Status Section
-  statusSection: {
-    paddingHorizontal: 24,
-    paddingBottom: 60,
-  },
-  statusCard: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 16,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  statusHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  statusIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 12,
-  },
-  statusTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  statusItems: {
-    gap: 12,
-    marginBottom: 16,
-  },
-  statusItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  statusItemText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  statusBadges: {
-    flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  
-  // Footer
-  footer: {
-    paddingHorizontal: 24,
-    paddingBottom: 40,
-    alignItems: 'center',
-  },
-  footerText: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
-  },
-  footerSubtext: {
-    fontSize: 12,
-    color: '#444',
-  },
-});
+    // Database Section
+    databaseSection: {
+      paddingHorizontal: 24,
+      paddingVertical: 40,
+    },
+    objectsContainer: {
+      marginTop: 20,
+    },
+    
+    // Features Section
+    featuresSection: {
+      paddingHorizontal: 24,
+      paddingVertical: 60,
+    },
+    sectionTitle: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: '#fff',
+      textAlign: 'center',
+      marginBottom: 40,
+    },
+    featuresGrid: {
+      gap: 20,
+    },
+    featureCard: {
+      backgroundColor: '#1a1a1a',
+      borderRadius: 16,
+      padding: 24,
+      borderWidth: 1,
+      borderColor: '#333',
+    },
+    featureIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: 12,
+      backgroundColor: '#00d4ff20',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    featureTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: '#fff',
+      marginBottom: 8,
+    },
+    featureDescription: {
+      fontSize: 14,
+      color: '#aaa',
+      lineHeight: 20,
+    },
+    
+    // Demo Section
+    demoSection: {
+      paddingHorizontal: 24,
+      paddingBottom: 60,
+    },
+    demoContainer: {
+      position: 'relative',
+      borderRadius: 16,
+      overflow: 'hidden',
+      backgroundColor: '#1a1a1a',
+    },
+    demoImage: {
+      width: '100%',
+      height: 200,
+    },
+    demoOverlay: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.4)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    playButton: {
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      backgroundColor: '#00d4ff',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    demoInfo: {
+      padding: 20,
+    },
+    demoTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: '#fff',
+      marginBottom: 8,
+    },
+    demoDescription: {
+      fontSize: 14,
+      color: '#aaa',
+      lineHeight: 20,
+    },
+    
+    // Compatibility Section
+    compatibilitySection: {
+      paddingHorizontal: 24,
+      paddingBottom: 60,
+    },
+    deviceGrid: {
+      flexDirection: 'row',
+      gap: 16,
+    },
+    deviceCard: {
+      flex: 1,
+      backgroundColor: '#1a1a1a',
+      borderRadius: 16,
+      padding: 20,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: '#333',
+    },
+    deviceIcon: {
+      marginBottom: 16,
+    },
+    deviceTitle: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#fff',
+      marginBottom: 4,
+    },
+    deviceDescription: {
+      fontSize: 12,
+      color: '#aaa',
+      textAlign: 'center',
+      marginBottom: 12,
+    },
+    statusBadge: {
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      borderRadius: 6,
+    },
+    statusBadgeText: {
+      fontSize: 10,
+      fontWeight: '600',
+    },
+    
+    // Status Section
+    statusSection: {
+      paddingHorizontal: 24,
+      paddingBottom: 60,
+    },
+    statusCard: {
+      backgroundColor: '#1a1a1a',
+      borderRadius: 16,
+      padding: 24,
+      borderWidth: 1,
+      borderColor: '#333',
+    },
+    statusHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    statusIndicator: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      marginRight: 12,
+    },
+    statusTitle: {
+      fontSize: 18,
+      fontWeight: '600',
+      color: '#fff',
+    },
+    statusItems: {
+      gap: 12,
+      marginBottom: 16,
+    },
+    statusItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    statusItemText: {
+      fontSize: 14,
+      fontWeight: '500',
+    },
+    statusBadges: {
+      flexDirection: 'row',
+      gap: 8,
+      flexWrap: 'wrap',
+    },
+    
+    // Footer
+    footer: {
+      paddingHorizontal: 24,
+      paddingBottom: 40,
+      alignItems: 'center',
+    },
+    footerText: {
+      fontSize: 14,
+      color: '#666',
+      marginBottom: 4,
+    },
+    footerSubtext: {
+      fontSize: 12,
+      color: '#444',
+    },
+  });
