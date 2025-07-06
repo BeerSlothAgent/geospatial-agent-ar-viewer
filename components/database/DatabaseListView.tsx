@@ -308,24 +308,12 @@ export default function DatabaseListView() {
       {objects.length > 0 && (
         <View style={styles.debugSection}>
           <Text style={styles.debugTitle}>Debug Information</Text>
-          <Text style={styles.debugText}>
-            <Text>• Supabase URL: {isSupabaseConfigured ? 'Configured' : 'Missing'}</Text>
-          </Text>
-          <Text style={styles.debugText}>
-            <Text>• Database Client: {supabase ? 'Initialized' : 'Not Initialized'}</Text>
-          </Text>
-          <Text style={styles.debugText}>
-            <Text>• Query Method: Direct Table Query (RPC Disabled)</Text>
-          </Text>
-          <Text style={styles.debugText}>
-            <Text>• Objects Retrieved: {objects.length}</Text>
-          </Text>
-          <Text style={styles.debugText}>
-            <Text>• Active Objects: {objects.filter(obj => obj.is_active).length}</Text>
-          </Text>
-          <Text style={styles.debugText}>
-            <Text>• Column Issue: updated_at column removed from query</Text>
-          </Text>
+          <Text style={styles.debugText}>• Supabase URL: {isSupabaseConfigured ? 'Configured' : 'Missing'}</Text>
+          <Text style={styles.debugText}>• Database Client: {supabase ? 'Initialized' : 'Not Initialized'}</Text>
+          <Text style={styles.debugText}>• Query Method: Direct Table Query (RPC Disabled)</Text>
+          <Text style={styles.debugText}>• Objects Retrieved: {objects.length}</Text>
+          <Text style={styles.debugText}>• Active Objects: {objects.filter(obj => obj.is_active).length}</Text>
+          <Text style={styles.debugText}>• Column Issue: updated_at column removed from query</Text>
         </View>
       )}
     </View>
