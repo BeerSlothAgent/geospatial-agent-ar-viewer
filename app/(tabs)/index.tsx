@@ -34,6 +34,7 @@ import { useDatabase } from '@/hooks/useDatabase';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { RangeDetectionService } from '@/services/RangeDetectionService';
 import NotificationIcon from '@/components/notification/NotificationIcon';
+import AgentMapView from '@/components/map/AgentMapView';
 import { DeployedObject } from '@/types/database';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
