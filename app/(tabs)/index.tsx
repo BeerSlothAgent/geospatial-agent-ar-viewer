@@ -31,8 +31,8 @@ import ThirdwebWalletConnect from '@/components/wallet/ThirdwebWalletConnect';
 import { useLocation } from '@/hooks/useLocation';
 import { useDatabase } from '@/hooks/useDatabase';
 import { isSupabaseConfigured } from '@/lib/supabase';
-import { RangeDetectionService } from '@/services/RangeDetectionService';
 import NotificationIcon from '@/components/notification/NotificationIcon';
+import { RangeDetectionService } from '@/services/RangeDetectionService';
 import AgentMapView from '@/components/map/AgentMapView';
 import { DeployedObject } from '@/types/database';
 
@@ -907,7 +907,7 @@ export default function HomePage() {
       flex: 1,
     },
     headerTitle: {
-      fontSize: 24,
+      fontSize: 22,
       fontWeight: '800',
       color: '#fff',
       marginBottom: 2,
@@ -929,41 +929,26 @@ export default function HomePage() {
       backgroundColor: '#1a1a1a',
       justifyContent: 'center',
       alignItems: 'center',
-      position: 'relative',
+      borderWidth: 1,
+      borderColor: '#333',
     },
     notificationBadge: {
       position: 'absolute',
-      top: 0,
-      right: 0,
+      top: -5,
+      right: -5,
       width: 18,
       height: 18,
       borderRadius: 9,
-      backgroundColor: '#F59E0B',
+      backgroundColor: '#00d4ff',
       justifyContent: 'center',
       alignItems: 'center',
-      borderWidth: 2,
+      borderWidth: 1,
       borderColor: '#0a0a0a',
     },
     notificationBadgeText: {
-      color: 'white',
+      color: '#000',
       fontSize: 10,
       fontWeight: 'bold',
-    },
-    headerRight: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-    },
-    walletButton: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: '#1a1a1a',
-      paddingHorizontal: 16,
-      paddingVertical: 10,
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: '#9333ea',
-      gap: 8,
     },
     agentBadge: {
       backgroundColor: 'rgba(245, 158, 11, 0.2)',
@@ -977,6 +962,17 @@ export default function HomePage() {
       color: '#F59E0B',
       fontSize: 12,
       fontWeight: '500',
+    },
+    walletButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: '#1a1a1a',
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: '#9333ea',
+      gap: 8,
     },
     walletButtonText: {
       fontSize: 14,

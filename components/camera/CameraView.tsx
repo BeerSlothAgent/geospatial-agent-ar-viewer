@@ -21,6 +21,7 @@ import Animated, {
 import ARView from '@/components/ar/ARView';
 import ARAgentScene from '@/components/ar/ARAgentScene';
 import NotificationIcon from '@/components/notification/NotificationIcon';
+import NotificationIcon from '@/components/notification/NotificationIcon';
 import { Bell } from 'lucide-react-native';
 import AgentMapView from '@/components/map/AgentMapView';
 import { DeployedObject } from '@/types/database';
@@ -566,6 +567,19 @@ export default function ARCameraView({
           >
             <Settings size={24} color="#fff" strokeWidth={2} />
           </TouchableOpacity>
+          
+          <NotificationIcon
+            agentsInRange={agentsInRange}
+            userLocation={userLocation}
+            onPress={handleToggleMap}
+          />
+          
+          <TouchableOpacity
+            style={styles.controlButton}
+            activeOpacity={0.7}
+          >
+            <RotateCcw size={24} color="#fff" strokeWidth={2} />
+          </TouchableOpacity>
         </View>
 
         {/* AR Mode Button */}
@@ -597,7 +611,17 @@ export default function ARCameraView({
         </View>
 
         {/* Bottom Controls */}
-        <View style={styles.bottomControls}>
+        <View style={styles.bottomControls}>          
+          <View style={styles.arInfo}>
+            <Text style={styles.arInfoText}>AR Objects Overlaid on Camera</Text>
+            <Text style={styles.arInfoSubtext}>
+              {visibleARObjects.length > 0 
+                ? `${visibleARObjects.length} objects visible • Tap to interact`
+                : 'Move camera to find AR objects'
+              }
+            </Text>
+          </View>
+                    
           <TouchableOpacity
             style={styles.controlButton}
             onPress={toggleFlash}
@@ -609,30 +633,6 @@ export default function ARCameraView({
             ) : (
               <ZapOff size={24} color="#fff" strokeWidth={2} />
             )}
-          </TouchableOpacity>
-          
-          <View style={styles.arInfo}>
-            <Text style={styles.arInfoText}>AR Objects Overlaid on Camera</Text>
-            <Text style={styles.arInfoSubtext}>
-              {visibleARObjects.length > 0 
-                ? `${visibleARObjects.length} objects visible • Tap to interact`
-                : 'Move camera to find AR objects'
-              }
-            </Text>
-          </View>
-          
-          {/* Notification Icon */}
-          <NotificationIcon
-            agentsInRange={agentsInRange}
-            onPress={handleToggleMap}
-          />
-          
-          <TouchableOpacity
-            style={styles.controlButton}
-            onPress={toggleCameraFacing}
-            activeOpacity={0.7}
-          >
-            <RotateCcw size={24} color="#fff" strokeWidth={2} />
           </TouchableOpacity>
         </View>
 
