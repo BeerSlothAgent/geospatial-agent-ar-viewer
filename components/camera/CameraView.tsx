@@ -439,14 +439,16 @@ export default function ARCameraView({
       {isCameraReady && (
         <View style={styles.arOverlay}>
           {/* Enhanced 3D AR Objects Scene */}
-          <ARAgentScene 
-            agents={objects}
-            userLocation={userLocation}
-            onAgentSelect={(agent) => {
-              console.log('🎯 Agent selected:', agent.name);
-              Alert.alert('Agent Interaction', `Interacting with ${agent.name}\nDistance: ${agent.distance_meters ? (agent.distance_meters / 1000).toFixed(2) : '?'}km`);
-            }}
-          />
+          {objects.length > 0 && (
+            <ARAgentScene 
+              agents={objects}
+              userLocation={userLocation}
+              onAgentSelect={(agent) => {
+                console.log('🎯 Agent selected:', agent.name);
+                Alert.alert('Agent Interaction', `Interacting with ${agent.name}\nDistance: ${agent.distance_meters ? (agent.distance_meters / 1000).toFixed(2) : '?'}km`);
+              }}
+            />
+          )}
           
           {/* AR Status Info */}
           <View style={styles.arStatus}>
@@ -803,16 +805,17 @@ const styles = StyleSheet.create({
   arObjectVisual: {
     width: 50,
     height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(0, 212, 255, 0.9)',
+    borderRadius: 8,
+    backgroundColor: 'rgba(0, 212, 255, 0.8)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
     borderColor: 'white',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.5,
+    shadowOpacity: 0.7,
     shadowRadius: 4,
+    transform: [{ perspective: 800 }],
   },
   arObjectIcon: {
     fontSize: 24,
@@ -984,19 +987,24 @@ const styles = StyleSheet.create({
   arModeContainer: {
     position: 'absolute',
     top: '60%',
-    left: '50%',
-    transform: [{ translateX: -80 }],
+    left: 0,
+    right: 0,
     alignItems: 'center',
     pointerEvents: 'auto',
   },
   arModeButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#00d4ff',
+    backgroundColor: 'rgba(0, 212, 255, 0.9)',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 24,
     gap: 8,
+    shadowColor: '#00d4ff',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
   },
   arModeButtonText: {
     fontSize: 16,
@@ -1006,8 +1014,11 @@ const styles = StyleSheet.create({
   objectsAvailable: {
     fontSize: 12,
     color: '#00d4ff',
-    marginTop: 8,
+    marginTop: 12,
     textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   
   // AR Info
@@ -1043,10 +1054,11 @@ const styles = StyleSheet.create({
   arIndicator: {
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     borderRadius: 12,
-    padding: 12,
+    padding: 10,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#00d4ff',
+    minWidth: 50,
   },
   arIndicatorText: {
     fontSize: 18,

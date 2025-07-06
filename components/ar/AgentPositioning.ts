@@ -39,43 +39,18 @@ export function calculateAgentPositions(
   agents.forEach((agent, index) => {
     try {
       // Calculate distance from user to agent
-      const distance = calculateDistance(
-        userLocation.latitude,
-        userLocation.longitude,
-        agent.latitude,
-        agent.longitude
-      );
+      const distance = agent.distance_meters || 
+        calculateDistance(
+          userLocation.latitude,
+          userLocation.longitude,
+          agent.latitude,
+          agent.longitude
+        );
       
       // Skip agents that are too far away
       if (distance > maxDistance) {
         return;
       }
-      
-      // Convert GPS coordinates to local 3D space
-      // North is +Z, East is +X, Up is +Y
-      const latRad = (agent.latitude * Math.PI) / 180;
-      const lngRad = (agent.longitude * Math.PI) / 180;
-      const userLatRad = (userLocation.latitude * Math.PI) / 180;
-      const userLngRad = (userLocation.longitude * Math.PI) / 180;
-      
-      // Calculate position relative to user
-      // Using Mercator projection for simplicity
-      const x = EARTH_RADIUS * (lngRad - userLngRad) * Math.cos(userLatRad);
-      const z = -EARTH_RADIUS * (latRad - userLatRad); // Negative Z for forward direction
-      
-      // Calculate altitude difference (if available)
-      const userAlt = userLocation.altitude || 0;
-      const agentAlt = agent.altitude || 0;
-      const y = agentAlt - userAlt;
-      
-      // Add centimeter-level precision variations (simulated RTK precision)
-      const cmVariationX = (Math.random() - 0.5) * 0.04; // ±2cm
-      const cmVariationZ = (Math.random() - 0.5) * 0.04; // ±2cm
-      const cmVariationY = (Math.random() - 0.5) * 0.02; // ±1cm vertical
-      
-      // Scale position for AR view (divide by factor to make distances manageable)
-      // This makes 1 meter in real world = 0.1 units in AR space
-      const scaleFactor = 10;
       
       // Calculate size based on agent type and distance
       const baseSize = getBaseSizeForAgentType(agent.object_type);
@@ -87,9 +62,9 @@ export function calculateAgentPositions(
       positions[agent.id] = {
         id: agent.id,
         position: { 
-          x: (x / scaleFactor) + cmVariationX, 
-          y: (y / scaleFactor) + cmVariationY + 1.6,
-          z: Math.abs(z / scaleFactor) + cmVariationZ + 5, // Ensure objects are in front of camera
+          x: 0, // Will be set by grid layout
+          y: 0, // Will be set by grid layout
+          z: 0, // Will be set by grid layout
         },
         size: finalSize,
         distance: distance,
@@ -139,7 +114,11 @@ function getBaseSizeForAgentType(agentType?: string): number {
     'Local Services': 0.9,
     'Tutor/Teacher': 1.1,
     '3D World Modelling': 1.3,
-    'Game Agent': 0.8
+    'Game Agent': 0.8,
+    'test-object': 1.0,
+    'info-sphere': 0.9,
+    'test-cube': 1.1,
+    'test-sphere': 0.8
   };
   
   return baseSizes[agentType || ''] || 0.8;

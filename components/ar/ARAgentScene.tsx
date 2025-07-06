@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Platform, Dimensions } from 'react-native';
 import { DeployedObject } from '@/types/database';
 import { LocationData } from '@/hooks/useLocation';
 import Agent3DObject from './Agent3DObject';
@@ -12,6 +12,8 @@ interface ARAgentSceneProps {
   onAgentSelect?: (agent: DeployedObject) => void;
 }
 
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
 export default function ARAgentScene({ agents, userLocation, onAgentSelect }: ARAgentSceneProps) {
   const [agentPositions, setAgentPositions] = useState<Record<string, AgentDisplayData>>({});
   const [selectedAgent, setSelectedAgent] = useState<DeployedObject | null>(null);
@@ -19,7 +21,7 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
   
   // Calculate agent positions when agents or user location changes
   useEffect(() => {
-    if (agents.length > 0 && userLocation) {
+    if (agents.length > 0) {
       console.log('🔄 Calculating positions for', agents.length, 'agents');
       const positions = calculateAgentPositions(agents, userLocation, 100);
       setAgentPositions(positions);
@@ -38,45 +40,50 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
     setSelectedAgent(agent);
     setShowAgentModal(true);
     
-    // Haptic feedback on native platforms
-    if (Platform.OS !== 'web' && 'expo-haptics' in global) {
-      try {
-        const Haptics = require('expo-haptics');
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      } catch (error) {
-        console.warn('Haptics not available:', error);
-      }
-    }
-    
     // Call parent handler if provided
     if (onAgentSelect) {
       onAgentSelect(agent);
     }
   };
   
+  // Distribute agents in a grid pattern
+  const getAgentPosition = (index: number) => {
+    const columns = 3;
+    const rows = Math.ceil(agents.length / columns);
+    
+    // Calculate grid cell size
+    const cellWidth = screenWidth / (columns + 1);
+    const cellHeight = screenHeight / (rows + 1);
+    
+    // Calculate position in grid
+    const col = index % columns;
+    const row = Math.floor(index / columns);
+    
+    // Add some randomness to positions
+    const randomX = (Math.random() - 0.5) * (cellWidth * 0.2);
+    const randomY = (Math.random() - 0.5) * (cellHeight * 0.2);
+    
+    return {
+      x: cellWidth * (col + 0.5) + randomX,
+      y: cellHeight * (row + 0.5) + randomY,
+    };
+  };
+  
   return (
-    <View style={styles.container}>
+    <View style={styles.container} pointerEvents="box-none">
       {/* 3D Objects Layer */}
       <View style={styles.objectsLayer} pointerEvents="box-none">
-        {agents.map((agent) => {
+        {agents.map((agent, index) => {
           const positionData = agentPositions[agent.id];
           if (!positionData) return null;
           
-          // Fixed screen positions for visibility testing
-          // Distribute agents in a grid pattern across the screen
-          const index = agents.findIndex(a => a.id === agent.id);
-          const columns = 3;
-          const spacing = 120;
-
-          const col = index % columns;
-          const row = Math.floor(index / columns);
-
-          const screenX = 100 + (col * spacing);
-          const screenY = 150 + (row * spacing);
+          // Get position in grid
+          const { x, y } = getAgentPosition(index);
+          
           // Vary size based on agent type and distance
-          const baseSize = getBaseSizeForAgentType(agent.object_type);
+          const baseSize = 60; // Base size in pixels
           const distanceFactor = Math.max(0.5, 1 - (positionData.distance / 100) * 0.5);
-          const displaySize = baseSize * distanceFactor * 60;
+          const displaySize = baseSize * positionData.size * distanceFactor;
 
           return (
             <View
@@ -84,12 +91,14 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
               style={[
                 styles.agentContainer,
                 {
-                  left: screenX - 30, // Adjust for better centering
-                  top: screenY - 30,  // Adjust for better centering
-                  zIndex: 1000 - index,
-                  opacity: 1,
+                  left: x - (displaySize / 2), // Center horizontally
+                  top: y - (displaySize / 2),  // Center vertically
+                  width: displaySize,
+                  height: displaySize,
+                  zIndex: 1000 - Math.round(positionData.distance), // Closer objects in front
                 }
               ]}
+              pointerEvents="box-none"
             >
               <Agent3DObject
                 agent={agent}
@@ -100,7 +109,7 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
               {/* Agent Label */}
               <View style={styles.agentLabel}>
                 <Text style={styles.agentName} numberOfLines={1}>
-                  {agent.name}
+                  {agent.name || `Agent ${index + 1}`}
                 </Text> 
                 <Text style={styles.agentDistance}>
                   {positionData.distance.toFixed(1)}m
@@ -121,7 +130,7 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
         <View style={styles.modalOverlay}>
           <View style={styles.agentInfoCard}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{selectedAgent?.name}</Text>
+              <Text style={styles.modalTitle}>{selectedAgent?.name || 'Agent'}</Text>
               <TouchableOpacity 
                 style={styles.closeButton}
                 onPress={() => setShowAgentModal(false)}
@@ -131,7 +140,7 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
             </View>
             
             <View style={styles.agentTypeContainer}>
-              <Text style={styles.agentType}>{selectedAgent?.object_type}</Text>
+              <Text style={styles.agentType}>{selectedAgent?.object_type || 'Unknown Type'}</Text>
             </View>
             
             {selectedAgent?.description && (
@@ -183,25 +192,6 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
   );
 }
 
-// Get base size multiplier for agent type
-function getBaseSizeForAgentType(agentType?: string): number {
-  const baseSizes: Record<string, number> = {
-    'ai_agent': 0.8,
-    'study_buddy': 0.6,
-    'tutor': 1.0,
-    'landmark': 1.2,
-    'building': 1.4,
-    'Intelligent Assistant': 1.0,
-    'Content Creator': 0.7,
-    'Local Services': 0.9,
-    'Tutor/Teacher': 1.1,
-    '3D World Modelling': 1.3,
-    'Game Agent': 0.8
-  };
-  
-  return baseSizes[agentType || ''] || 0.8;
-}
-
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
@@ -219,9 +209,8 @@ const styles = StyleSheet.create({
   agentContainer: {
     position: 'absolute',
     alignItems: 'center',
-    width: 60,
-    height: 60,
     justifyContent: 'center',
+    pointerEvents: 'box-none',
   },
   agentLabel: {
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
@@ -230,7 +219,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginTop: 8,
     alignItems: 'center',
-    minWidth: 100,
+    minWidth: 80,
   },
   agentName: {
     color: 'white',
