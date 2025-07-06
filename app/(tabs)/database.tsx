@@ -214,22 +214,22 @@ export default function DatabaseScreen() {
             Migration: Clean migration applied ✅
           </Text>
         </View>
-      </View>
+            • Supabase URL: {isSupabaseConfigured ? 'Configured' : 'Missing'}
 
       {/* Error Display */}
-      {error && (
+            • Database Client: {supabase ? 'Initialized' : 'Not Initialized'}
         <View style={styles.errorSection}>
           <AlertCircle size={16} color="#ff6b35" strokeWidth={2} />
-          <Text style={styles.errorText}>{error}</Text>
+            • Query Method: Direct Table Query (RPC Disabled)
         </View>
       )}
-
+            • Objects Retrieved: {objects.length}
       {/* Success Message */}
       {connectionStatus.connected && objects.length > 0 && (
-        <View style={styles.successSection}>
+            • Active Objects: {objects.filter(obj => obj.is_active).length}
           <CheckCircle size={16} color="#00ff88" strokeWidth={2} />
           <Text style={styles.successText}>
-            🎉 Database working perfectly! Found {objects.length} AR objects ready for your AR viewer.
+            • Column Issue: updated_at column removed from query
           </Text>
         </View>
       )}
