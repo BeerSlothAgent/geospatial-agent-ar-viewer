@@ -19,12 +19,14 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
   const [agentPositions, setAgentPositions] = useState<Record<string, AgentDisplayData>>({});
   const [selectedAgent, setSelectedAgent] = useState<DeployedObject | null>(null);
   const [agentsInRange, setAgentsInRange] = useState<DeployedObject[]>([]);
+ const [isInitialized, setIsInitialized] = useState(false);
   const [showAgentModal, setShowAgentModal] = useState(false);
   const rangeService = RangeDetectionService.getInstance();
   
   // Calculate agent positions when agents or user location changes
   useEffect(() => {
     if (agents.length > 0) {
+     setIsInitialized(true);
       console.log('🔄 Calculating positions for', agents.length, 'agents');
       const positions = calculateAgentPositions(agents, userLocation, 100);
       setAgentPositions(positions);
@@ -92,6 +94,7 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
   return (
     <View style={styles.container} pointerEvents="box-none">
       {/* 3D Objects Layer */}
+     {isInitialized && (
       <View style={styles.objectsLayer} pointerEvents="box-none">
         {agents.map((agent, index) => {
           const positionData = agentPositions[agent.id];
@@ -148,6 +151,7 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
           );
         })}
       </View>
+     )}
       
       {/* Agent Info Modal */}
       <Modal

@@ -139,28 +139,24 @@ export default function AgentMapView({
   useEffect(() => {
     if (!map.current || !mapLoaded) return;
     
-    // Wait until the style is fully loaded
-    if (!map.current.isStyleLoaded()) {
-      console.log('⏳ Waiting for map style to load before adding markers...');
-      
-      // Check if style is loaded, if not, wait and try again
-      const checkStyleLoaded = () => {
-        if (map.current && map.current.isStyleLoaded()) {
-          updateAgentMarkers();
-        } else {
-          setTimeout(checkStyleLoaded, 100);
-        }
-      };
-      
-      checkStyleLoaded();
-      return;
-    }
-    
-    updateAgentMarkers();
+   // Add a delay to ensure the map is fully loaded
+   const timer = setTimeout(() => {
+     try {
+       if (map.current) {
+         updateAgentMarkers();
+       }
+     } catch (error) {
+       console.error('Error updating agent markers:', error);
+     }
+   }, 1000);
+   
+   return () => clearTimeout(timer);
   }, [agents, mapLoaded]);
 
   // Function to update agent markers
   const updateAgentMarkers = () => {
+   if (!map.current) return;
+   
     // Clear existing markers
     markers.current.forEach(marker => marker.remove());
     markers.current = [];
@@ -171,25 +167,25 @@ export default function AgentMapView({
       const inRange = distance !== null && distance <= (agent.visibility_radius || 50);
       
       try {
-      // Create marker element
-      const markerEl = document.createElement('div');
-      markerEl.className = 'agent-marker';
-      markerEl.style.cssText = `
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        background-color: ${getAgentMarkerColor(agent.object_type)};
-        border: 2px solid white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-weight: bold;
-        font-size: 12px;
-        cursor: pointer;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-      `;
-      markerEl.textContent = agent.object_type.charAt(0);
+       // Create marker element
+       const markerEl = document.createElement('div');
+       markerEl.className = 'agent-marker';
+       markerEl.style.cssText = `
+         width: 30px;
+         height: 30px;
+         border-radius: 50%;
+         background-color: ${getAgentMarkerColor(agent.object_type)};
+         border: 2px solid white;
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         color: white;
+         font-weight: bold;
+         font-size: 12px;
+         cursor: pointer;
+         box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+       `;
+       markerEl.textContent = agent.object_type.charAt(0);
 
       // Create popup
       const popup = new window.mapboxgl.Popup({
@@ -242,37 +238,45 @@ export default function AgentMapView({
       // Add range circle
       try {
         if (map.current.getSource(`circle-${agent.id}`)) {
-          map.current.removeLayer(`circle-fill-${agent.id}`);
-          map.current.removeLayer(`circle-stroke-${agent.id}`);
-          map.current.removeSource(`circle-${agent.id}`);
+         try {
+           map.current.removeLayer(`circle-fill-${agent.id}`);
+           map.current.removeLayer(`circle-stroke-${agent.id}`);
+           map.current.removeSource(`circle-${agent.id}`);
+         } catch (e) {
+           console.warn(`Error removing previous circle layers for ${agent.id}:`, e);
+         }
         }
 
         const circleData = createCircleData(agent);
-        map.current.addSource(`circle-${agent.id}`, {
-          type: 'geojson',
-          data: circleData
-        });
+       try {
+         map.current.addSource(`circle-${agent.id}`, {
+           type: 'geojson',
+           data: circleData
+         });
 
-        map.current.addLayer({
-          id: `circle-fill-${agent.id}`,
-          type: 'fill',
-          source: `circle-${agent.id}`,
-          paint: {
-            'fill-color': getAgentMarkerColor(agent.object_type),
-            'fill-opacity': 0.1
-          }
-        });
+         map.current.addLayer({
+           id: `circle-fill-${agent.id}`,
+           type: 'fill',
+           source: `circle-${agent.id}`,
+           paint: {
+             'fill-color': getAgentMarkerColor(agent.object_type),
+             'fill-opacity': 0.1
+           }
+         });
 
-        map.current.addLayer({
-          id: `circle-stroke-${agent.id}`,
-          type: 'line',
-          source: `circle-${agent.id}`,
-          paint: {
-            'line-color': getAgentMarkerColor(agent.object_type),
-            'line-width': 2,
-            'line-opacity': 0.8
-          }
-        });
+         map.current.addLayer({
+           id: `circle-stroke-${agent.id}`,
+           type: 'line',
+           source: `circle-${agent.id}`,
+           paint: {
+             'line-color': getAgentMarkerColor(agent.object_type),
+             'line-width': 2,
+             'line-opacity': 0.8
+           }
+         });
+       } catch (e) {
+         console.warn(`Error adding circle layers for ${agent.id}:`, e);
+       }
       } catch (circleError) {
         console.warn(`Failed to add circle for agent ${agent.id}:`, circleError);
       }
