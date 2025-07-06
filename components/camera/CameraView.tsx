@@ -21,6 +21,7 @@ import Animated, {
 import ARView from '@/components/ar/ARView';
 import ARAgentScene from '@/components/ar/ARAgentScene';
 import NotificationIcon from '@/components/notification/NotificationIcon';
+import { Bell } from 'lucide-react-native';
 import AgentMapView from '@/components/map/AgentMapView';
 import { DeployedObject } from '@/types/database';
 import { LocationData } from '@/hooks/useLocation';
@@ -540,6 +541,19 @@ export default function ARCameraView({
             <X size={24} color="#fff" strokeWidth={2} />
           </TouchableOpacity>
           
+          <TouchableOpacity
+            style={styles.controlButton}
+            onPress={handleToggleMap}
+            activeOpacity={0.7}
+          >
+            <Bell size={24} color="#fff" strokeWidth={2} />
+            {agentsInRange.length > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>{agentsInRange.length}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          
           <View style={styles.statusIndicator}>
             <Animated.View style={[styles.statusDot, pulseStyle]} />
             <Text style={styles.statusText}>AR Ready</Text>
@@ -974,6 +988,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#F59E0B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  notificationBadgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
   closeButton: {
     position: 'absolute',

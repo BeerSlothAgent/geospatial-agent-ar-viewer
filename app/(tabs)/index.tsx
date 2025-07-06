@@ -11,8 +11,7 @@ import {
   Modal,
   Alert,
 } from 'react-native';
-import { Camera, MapPin, Zap, Globe, ArrowRight, Play, CircleCheck as CheckCircle, Smartphone, Monitor, Tablet, Navigation, Database, MessageCircle, Mic, Users, Wallet } from 'lucide-react-native';
-import { Bell } from 'lucide-react-native';
+import { Camera, MapPin, Zap, Globe, ArrowRight, Play, CircleCheck as CheckCircle, Smartphone, Monitor, Tablet, Navigation, Database, MessageCircle, Mic, Users, Wallet, Bell } from 'lucide-react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -406,14 +405,29 @@ export default function HomePage() {
               <Text style={styles.headerSubtitle}>Agent Reality</Text>
             </View>
             
-            <TouchableOpacity
-              style={styles.walletButton}
-              onPress={() => setShowWalletModal(true)}
-              activeOpacity={0.8}
-            >
-              <Wallet size={20} color="#9333ea" strokeWidth={2} />
-              <Text style={styles.walletButtonText}>Wallet</Text>
-            </TouchableOpacity>
+            <View style={styles.headerButtons}>
+              <TouchableOpacity
+                style={styles.notificationButton}
+                onPress={handleNotificationPress}
+                activeOpacity={0.8}
+              >
+                <Bell size={20} color="#00d4ff" strokeWidth={2} />
+                {agentsInRange.length > 0 && (
+                  <View style={styles.notificationBadge}>
+                    <Text style={styles.notificationBadgeText}>{agentsInRange.length}</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={styles.walletButton}
+                onPress={() => setShowWalletModal(true)}
+                activeOpacity={0.8}
+              >
+                <Wallet size={20} color="#9333ea" strokeWidth={2} />
+                <Text style={styles.walletButtonText}>Wallet</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -903,19 +917,19 @@ export default function HomePage() {
       color: '#00d4ff',
       fontWeight: '500',
     },
-    headerRight: {
+    headerButtons: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 12,
     },
     notificationButton: {
-      position: 'relative',
       width: 40,
       height: 40,
       borderRadius: 20,
       backgroundColor: '#1a1a1a',
       justifyContent: 'center',
       alignItems: 'center',
+      position: 'relative',
     },
     notificationBadge: {
       position: 'absolute',
@@ -934,6 +948,11 @@ export default function HomePage() {
       color: 'white',
       fontSize: 10,
       fontWeight: 'bold',
+    },
+    headerRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
     },
     walletButton: {
       flexDirection: 'row',
