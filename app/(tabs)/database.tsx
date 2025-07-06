@@ -225,10 +225,8 @@ export default function DatabaseScreen() {
       )}
 
       {/* Success Message */}
-      {connectionStatus.connected && objects.length > 0 && (
         <View style={styles.successSection}>
           <CheckCircle size={16} color="#00ff88" strokeWidth={2} />
-          <Text style={styles.successText}>
             Database is connected and working properly!
           </Text>
         </View>
