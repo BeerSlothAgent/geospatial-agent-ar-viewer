@@ -14,7 +14,7 @@ interface LoadingSpinnerProps {
 
 export default function LoadingSpinner({ 
   size = 24, 
-  color = '#00d4ff' 
+  color = '#00d4ff'
 }: LoadingSpinnerProps) {
   const rotation = useSharedValue(0);
 
@@ -25,6 +25,7 @@ export default function LoadingSpinner({
       false
     );
   }, []);
+
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ rotate: `${rotation.value}deg` }],

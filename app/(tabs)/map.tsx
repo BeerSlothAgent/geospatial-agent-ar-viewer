@@ -1,45 +1,84 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Platform, Image } from 'react-native';
-import { Camera, X, MapPin, Info, Navigation } from 'lucide-react-native';
-import { DeployedObject } from '@/types/database';
-import { LocationData } from '@/hooks/useLocation';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Platform } from 'react-native';
+import { Camera, MapPin, Zap, ArrowLeft } from 'lucide-react-native';
+import { useLocation } from '@/hooks/useLocation';
+import { useDatabase } from '@/hooks/useDatabase';
 import { RangeDetectionService } from '@/services/RangeDetectionService';
-import MapView, { Marker, Circle, PROVIDER_GOOGLE } from 'react-native-maps';
+import { DeployedObject } from '@/types/database';
+import { router } from 'expo-router';
 
-interface AgentMapViewProps {
-  userLocation: LocationData;
-  agents: DeployedObject[];
-  onClose: () => void;
-  onSwitchToCamera: () => void;
-  onAgentSelect?: (agent: DeployedObject) => void;
-}
-
-const { width, height } = Dimensions.get('window');
 const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
+const { width, height } = Dimensions.get('window');
 
-export default function AgentMapView({
-  userLocation,
-  agents,
-  onClose,
-  onSwitchToCamera,
-  onAgentSelect
-}: AgentMapViewProps) {
-  const [selectedAgent, setSelectedAgent] = useState<DeployedObject | null>(null);
+export default function MapScreen() {
+  const [agents, setAgents] = useState<DeployedObject[]>([]);
   const [agentsInRange, setAgentsInRange] = useState<DeployedObject[]>([]);
-  const mapRef = useRef<MapView>(null);
+  const [selectedAgent, setSelectedAgent] = useState<DeployedObject | null>(null);
+  
+  // Location hook
+  const {
+    location,
+    error: locationError,
+    isLoading: locationLoading,
+    hasPermission: hasLocationPermission,
+    getCurrentPosition,
+  } = useLocation({
+    enableHighAccuracy: true,
+    watchPosition: true,
+  });
+  
+  // Database hook
+  const {
+    getNearbyObjects,
+    isLoading: databaseLoading,
+  } = useDatabase();
+  
+  // Range detection service
   const rangeService = RangeDetectionService.getInstance();
-
-  // Filter agents in range
+  
+  // Load agents when location changes
   useEffect(() => {
-    if (userLocation) {
-      const inRange = agents.filter(agent => {
-        const distance = rangeService.getDistanceToAgent(agent);
-        return distance !== null && distance <= (agent.visibility_radius || 50);
-      });
-      setAgentsInRange(inRange);
+    if (location) {
+      loadAgents();
     }
-  }, [agents, userLocation]);
-
+  }, [location]);
+  
+  // Update range detection service
+  useEffect(() => {
+    if (location) {
+      rangeService.updateUserLocation(location);
+    }
+    
+    if (agents.length > 0) {
+      rangeService.updateAgents(agents);
+    }
+    
+    // Subscribe to range updates
+    const unsubscribe = rangeService.subscribe((inRangeAgents) => {
+      setAgentsInRange(inRangeAgents);
+    });
+    
+    return unsubscribe;
+  }, [agents, location]);
+  
+  // Load agents from database
+  const loadAgents = async () => {
+    if (!location) return;
+    
+    try {
+      const objects = await getNearbyObjects({
+        latitude: location.latitude,
+        longitude: location.longitude,
+        radius_meters: 1000, // 1km radius
+        limit: 50,
+      });
+      
+      setAgents(objects);
+    } catch (error) {
+      console.error('Failed to load agents:', error);
+    }
+  };
+  
   // Get agent color based on type
   const getAgentColor = (agentType: string): string => {
     const colorMap: Record<string, string> = {
@@ -62,64 +101,39 @@ export default function AgentMapView({
     
     return colorMap[agentType] || '#00d4ff';
   };
-
-  // Handle agent selection
-  const handleAgentSelect = (agent: DeployedObject) => {
-    setSelectedAgent(agent);
-    if (onAgentSelect) {
-      onAgentSelect(agent);
-    }
+  
+  // Switch to camera/AR view
+  const handleSwitchToCamera = () => {
+    router.navigate('/');
   };
-
-  // Calculate initial region to show all agents
-  const getInitialRegion = () => {
-    if (!userLocation) {
-      return {
-        latitude: 37.7749,
-        longitude: -122.4194,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      };
-    }
-
-    if (agents.length === 0) {
-      return {
-        latitude: userLocation.latitude,
-        longitude: userLocation.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      };
-    }
-
-    // Include user location and all agents
-    const latitudes = [userLocation.latitude, ...agents.map(a => a.latitude)];
-    const longitudes = [userLocation.longitude, ...agents.map(a => a.longitude)];
-
-    const minLat = Math.min(...latitudes);
-    const maxLat = Math.max(...latitudes);
-    const minLng = Math.min(...longitudes);
-    const maxLng = Math.max(...longitudes);
-
-    // Add padding
-    const latDelta = (maxLat - minLat) * 1.5 || 0.01;
-    const lngDelta = (maxLng - minLng) * 1.5 || 0.01;
-
-    return {
-      latitude: (minLat + maxLat) / 2,
-      longitude: (minLng + maxLng) / 2,
-      latitudeDelta: Math.max(latDelta, 0.01),
-      longitudeDelta: Math.max(lngDelta, 0.01),
-    };
-  };
-
-  // Render map with Google Maps on native platforms and Mapbox on web
-  const renderMap = () => {
-    if (Platform.OS === 'web') {
-      // For web, use Mapbox
-      return (
-        <View style={styles.mapContainer}>
+  
+  // Render map placeholder (since we can't use react-native-maps in this environment)
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <Text style={styles.headerTitle}>Agent Map</Text>
+          <Text style={styles.headerSubtitle}>
+            {agentsInRange.length} agent{agentsInRange.length !== 1 ? 's' : ''} in range
+          </Text>
+        </View>
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            onPress={handleSwitchToCamera}
+            style={styles.headerButton}
+          >
+            <Camera size={24} color="#00d4ff" strokeWidth={2} />
+          </TouchableOpacity>
+        </View>
+      </View>
+      
+      {/* Map */}
+      <View style={styles.mapContainer}>
+        {Platform.OS === 'web' ? (
+          // For web, use Mapbox
           <iframe
-            src={`https://api.mapbox.com/styles/v1/mapbox/dark-v10/static/${userLocation.longitude},${userLocation.latitude},13,0/800x600?access_token=${MAPBOX_TOKEN}`}
+            src={`https://api.mapbox.com/styles/v1/mapbox/dark-v10/static/${location?.longitude || -122.4194},${location?.latitude || 37.7749},13,0/800x600?access_token=${MAPBOX_TOKEN}`}
             style={{
               width: '100%',
               height: '100%',
@@ -127,133 +141,65 @@ export default function AgentMapView({
             }}
             title="Map"
           />
-          
-          {/* User location marker */}
-          <View style={[styles.webMarker, styles.userMarker]}>
-            <View style={styles.userMarkerDot} />
+        ) : (
+          // For native, show placeholder
+          <View style={styles.mapPlaceholder}>
+            <Text style={styles.mapPlaceholderText}>Map View</Text>
+            <Text style={styles.mapPlaceholderSubtext}>
+              {location ? 
+                `Your location: ${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}` : 
+                'Location not available'}
+            </Text>
           </View>
-          
-          {/* Agent markers */}
-          {agents.map((agent, index) => {
-            const distance = rangeService.getDistanceToAgent(agent) || 0;
-            const inRange = distance <= (agent.visibility_radius || 50);
-            
-            // Calculate position (simplified for web)
-            const angle = (index / agents.length) * Math.PI * 2;
-            const radius = Math.min(width, height) * 0.3 * (distance / 100 + 0.5);
-            const x = Math.cos(angle) * radius;
-            const y = Math.sin(angle) * radius;
-            
-            return (
-              <TouchableOpacity
-                key={agent.id}
-                style={[
-                  styles.webMarker,
-                  styles.agentMarker,
-                  {
-                    transform: [
-                      { translateX: x },
-                      { translateY: y }
-                    ],
-                    backgroundColor: getAgentColor(agent.object_type),
-                    opacity: inRange ? 1 : 0.5,
-                  }
-                ]}
-                onPress={() => handleAgentSelect(agent)}
-              >
-                <Text style={styles.agentMarkerLabel}>{agent.name}</Text>
-                <View style={[
-                  styles.agentRange,
-                  { 
-                    borderColor: getAgentColor(agent.object_type),
-                    width: (agent.visibility_radius || 50) / 5,
-                    height: (agent.visibility_radius || 50) / 5,
-                  }
-                ]} />
-              </TouchableOpacity>
-            );
-          })}
+        )}
+        
+        {/* User location marker */}
+        <View style={styles.userMarker}>
+          <View style={styles.userMarkerDot} />
+          <Text style={styles.userMarkerLabel}>You</Text>
         </View>
-      );
-    }
-
-    // For native platforms, use react-native-maps
-    return (
-      <MapView
-        ref={mapRef}
-        style={styles.map}
-        provider={PROVIDER_GOOGLE}
-        initialRegion={getInitialRegion()}
-        showsUserLocation={true}
-        showsMyLocationButton={true}
-        showsCompass={true}
-      >
-        {/* Agent markers and circles */}
-        {agents.map((agent) => {
-          const distance = rangeService.getDistanceToAgent(agent);
-          const inRange = distance !== null && distance <= (agent.visibility_radius || 50);
+        
+        {/* Agent markers */}
+        {agents.map((agent, index) => {
+          const distance = rangeService.getDistanceToAgent(agent) || 0;
+          const inRange = distance <= (agent.visibility_radius || 50);
+          
+          // Calculate position (simplified for placeholder)
+          const angle = (index / agents.length) * Math.PI * 2;
+          const radius = Math.min(width, height) * 0.3 * (distance / 100 + 0.5);
+          const x = Math.cos(angle) * radius;
+          const y = Math.sin(angle) * radius;
           
           return (
-            <React.Fragment key={agent.id}>
-              {/* Agent visibility circle */}
-              <Circle
-                center={{
-                  latitude: agent.latitude,
-                  longitude: agent.longitude,
-                }}
-                radius={agent.visibility_radius || 50}
-                strokeColor={getAgentColor(agent.object_type)}
-                fillColor={`${getAgentColor(agent.object_type)}20`}
-                strokeWidth={2}
-              />
-              
-              {/* Agent marker */}
-              <Marker
-                coordinate={{
-                  latitude: agent.latitude,
-                  longitude: agent.longitude,
-                }}
-                title={agent.name || 'Agent'}
-                description={`${agent.object_type} • ${distance ? Math.round(distance) : '?'}m away`}
-                pinColor={getAgentColor(agent.object_type)}
-                onPress={() => handleAgentSelect(agent)}
-              />
-            </React.Fragment>
+            <TouchableOpacity
+              key={agent.id}
+              style={[
+                styles.agentMarker,
+                {
+                  transform: [
+                    { translateX: x },
+                    { translateY: y }
+                  ],
+                  backgroundColor: getAgentColor(agent.object_type),
+                  opacity: inRange ? 1 : 0.5,
+                }
+              ]}
+              onPress={() => setSelectedAgent(agent)}
+            >
+              <Text style={styles.agentMarkerLabel}>{agent.name}</Text>
+              <View style={[
+                styles.agentRange,
+                { 
+                  borderColor: getAgentColor(agent.object_type),
+                  width: (agent.visibility_radius || 50) / 5,
+                  height: (agent.visibility_radius || 50) / 5,
+                }
+              ]} />
+            </TouchableOpacity>
           );
         })}
-      </MapView>
-    );
-  };
-
-  return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.headerTitle}>Nearby Agents</Text>
-          <Text style={styles.headerSubtitle}>
-            {agentsInRange.length} agent{agentsInRange.length !== 1 ? 's' : ''} in range
-          </Text>
-        </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity
-            onPress={onSwitchToCamera}
-            style={styles.headerButton}
-          >
-            <Camera size={24} color="#00d4ff" strokeWidth={2} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={onClose}
-            style={styles.headerButton}
-          >
-            <X size={24} color="#6B7280" strokeWidth={2} />
-          </TouchableOpacity>
-        </View>
       </View>
-
-      {/* Map */}
-      {renderMap()}
-
+      
       {/* Bottom Panel */}
       <View style={styles.bottomPanel}>
         <View style={styles.statsContainer}>
@@ -273,16 +219,16 @@ export default function AgentMapView({
             <Text style={styles.statLabel}>Closest</Text>
           </View>
         </View>
-
+        
         <TouchableOpacity
           style={styles.switchButton}
-          onPress={onSwitchToCamera}
+          onPress={handleSwitchToCamera}
         >
           <Camera size={20} color="white" />
           <Text style={styles.switchButtonText}>Switch to AR Camera</Text>
         </TouchableOpacity>
       </View>
-
+      
       {/* Selected Agent Info */}
       {selectedAgent && (
         <View style={styles.agentInfoPanel}>
@@ -292,7 +238,7 @@ export default function AgentMapView({
               style={styles.closeInfoButton}
               onPress={() => setSelectedAgent(null)}
             >
-              <X size={16} color="#6B7280" strokeWidth={2} />
+              <ArrowLeft size={16} color="#6B7280" strokeWidth={2} />
             </TouchableOpacity>
           </View>
           
@@ -310,7 +256,7 @@ export default function AgentMapView({
               </Text>
             </View>
             <View style={styles.agentInfoDetail}>
-              <Info size={14} color="#00d4ff" strokeWidth={2} />
+              <Zap size={14} color="#00d4ff" strokeWidth={2} />
               <Text style={styles.agentInfoDetailText}>
                 Range: {selectedAgent.visibility_radius || 50}m
               </Text>
@@ -320,15 +266,15 @@ export default function AgentMapView({
           <TouchableOpacity 
             style={styles.interactButton}
             onPress={() => {
-              if (onAgentSelect) onAgentSelect(selectedAgent);
               setSelectedAgent(null);
+              handleSwitchToCamera();
             }}
           >
-            <Text style={styles.interactButtonText}>Interact</Text>
+            <Text style={styles.interactButtonText}>View in AR</Text>
           </TouchableOpacity>
         </View>
       )}
-
+      
       {/* Legend */}
       <View style={styles.legend}>
         <Text style={styles.legendTitle}>Legend</Text>
@@ -393,16 +339,32 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
   },
-  map: {
-    flex: 1,
+  mapPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#1a1a1a',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  webMarker: {
+  mapPlaceholderText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
     position: 'absolute',
-    transform: [{ translateX: -8 }, { translateY: -8 }],
-    left: '50%',
-    top: '50%',
+  },
+  mapPlaceholderSubtext: {
+    fontSize: 12,
+    color: '#666',
+    position: 'absolute',
+    top: 50,
   },
   userMarker: {
+    position: 'absolute',
+    left: '50%',
+    top: '50%',
+    transform: [{ translateX: -8 }, { translateY: -8 }],
+    justifyContent: 'center',
+    alignItems: 'center',
     zIndex: 2,
   },
   userMarkerDot: {
@@ -413,10 +375,22 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'white',
   },
+  userMarkerLabel: {
+    color: 'white',
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: 'bold',
+  },
   agentMarker: {
+    position: 'absolute',
     width: 16,
     height: 16,
     borderRadius: 8,
+    left: '50%',
+    top: '50%',
+    transform: [{ translateX: -8 }, { translateY: -8 }],
+    justifyContent: 'center',
+    alignItems: 'center',
     borderWidth: 2,
     borderColor: 'white',
     zIndex: 1,

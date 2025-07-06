@@ -12,6 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { Camera, MapPin, Zap, Globe, ArrowRight, Play, CircleCheck as CheckCircle, Smartphone, Monitor, Tablet, Navigation, Database, MessageCircle, Mic, Users, Wallet } from 'lucide-react-native';
+import { Bell } from 'lucide-react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -31,6 +32,8 @@ import ThirdwebWalletConnect from '@/components/wallet/ThirdwebWalletConnect';
 import { useLocation } from '@/hooks/useLocation';
 import { useDatabase } from '@/hooks/useDatabase';
 import { isSupabaseConfigured } from '@/lib/supabase';
+import { RangeDetectionService } from '@/services/RangeDetectionService';
+import NotificationIcon from '@/components/notification/NotificationIcon';
 import { DeployedObject } from '@/types/database';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
@@ -43,9 +46,14 @@ export default function HomePage() {
   const [showLocationDetails, setShowLocationDetails] = useState(false);
   const [showDatabaseDetails, setShowDatabaseDetails] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
+  const [showMapModal, setShowMapModal] = useState(false);
   const [nearbyObjects, setNearbyObjects] = useState<DeployedObject[]>([]);
+  const [agentsInRange, setAgentsInRange] = useState<DeployedObject[]>([]);
   const [initializationStep, setInitializationStep] = useState(0);
   const [systemReady, setSystemReady] = useState(false);
+  
+  // Range detection service
+  const rangeService = RangeDetectionService.getInstance();
   
   // Location hook
   const {
@@ -183,6 +191,24 @@ export default function HomePage() {
       loadNearbyObjects();
     }
   }, [location, systemReady]);
+
+  // Initialize range detection service
+  useEffect(() => {
+    if (location) {
+      rangeService.updateUserLocation(location);
+    }
+    
+    if (nearbyObjects && nearbyObjects.length > 0) {
+      rangeService.updateAgents(nearbyObjects);
+    }
+    
+    // Subscribe to range updates
+    const unsubscribe = rangeService.subscribe((inRangeAgents) => {
+      setAgentsInRange(inRangeAgents);
+    });
+    
+    return unsubscribe;
+  }, [nearbyObjects, location]);
 
   const loadNearbyObjects = async () => {
     if (!isMounted.current) return;
@@ -346,6 +372,11 @@ export default function HomePage() {
 
   // Check if AR button should be enabled
   const isARButtonEnabled = systemReady && nearbyObjects.length > 0;
+
+  // Handle notification icon press
+  const handleNotificationPress = () => {
+    setShowMapModal(true);
+  };
 
   // Debug information
   const debugInfo = {
@@ -711,11 +742,63 @@ export default function HomePage() {
             >
               <Text style={styles.walletModalCloseText}>Done</Text>
             </TouchableOpacity>
+            {agentsInRange.length > 0 && (
+              <View style={styles.agentBadge}>
+                <Text style={styles.agentBadgeText}>
+                  {agentsInRange.length} agent{agentsInRange.length !== 1 ? 's' : ''} in range
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              style={styles.notificationButton}
+              onPress={handleNotificationPress}
+              activeOpacity={0.8}
+            >
+              <Bell size={20} color={agentsInRange.length > 0 ? "#F59E0B" : "#6B7280"} strokeWidth={2} />
+              {agentsInRange.length > 0 && (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>
+                    {agentsInRange.length}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={styles.walletButton}
+              onPress={() => setShowWalletModal(true)}
+              activeOpacity={0.8}
+            >
+              <Wallet size={20} color="#9333ea" strokeWidth={2} />
+              <Text style={styles.walletButtonText}>Wallet</Text>
+            </TouchableOpacity>
           </View>
-          
-          <ScrollView style={styles.walletModalContent} showsVerticalScrollIndicator={false}>
-            <ThirdwebWalletConnect />
-          </ScrollView>
+        </View>
+      </Modal>
+      
+      {/* Map Modal */}
+      <Modal
+        visible={showMapModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowMapModal(false)}
+      >
+        <View style={styles.mapModalContainer}>
+          {location && (
+            <AgentMapView
+              userLocation={location}
+              agents={nearbyObjects}
+              onClose={() => setShowMapModal(false)}
+              onSwitchToCamera={() => {
+                setShowMapModal(false);
+                handleStartAR();
+              }}
+              onAgentSelect={(agent) => {
+                console.log('Selected agent from map:', agent.name);
+                setShowMapModal(false);
+                // Optionally start AR mode focused on this agent
+                handleStartAR();
+              }}
+            />
+          )}
         </View>
       </Modal>
     </>
@@ -824,6 +907,7 @@ const styles = StyleSheet.create({
   },
   headerLeft: {
     flex: 1,
+    flex: 1,
   },
   headerTitle: {
     fontSize: 24,
@@ -836,6 +920,38 @@ const styles = StyleSheet.create({
     color: '#00d4ff',
     fontWeight: '500',
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  notificationButton: {
+    position: 'relative',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#1a1a1a',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#F59E0B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#0a0a0a',
+  },
+  notificationBadgeText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
   walletButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -846,6 +962,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#9333ea',
     gap: 8,
+  },
+  agentBadge: {
+    backgroundColor: 'rgba(245, 158, 11, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    marginTop: 4,
+    alignSelf: 'flex-start',
+  },
+  agentBadgeText: {
+    color: '#F59E0B',
+    fontSize: 12,
+    fontWeight: '500',
   },
   walletButtonText: {
     fontSize: 14,
@@ -888,6 +1017,10 @@ const styles = StyleSheet.create({
   walletModalContent: {
     flex: 1,
     backgroundColor: '#f9fafb',
+  },
+  mapModalContainer: {
+    flex: 1,
+    backgroundColor: '#0a0a0a',
   },
   
   // Hero Section
