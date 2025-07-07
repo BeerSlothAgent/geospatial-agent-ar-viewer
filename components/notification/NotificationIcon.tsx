@@ -41,11 +41,10 @@ export default function NotificationIcon({ agentsInRange, userLocation, onPress 
     }
   }, [agentsInRange.length]);
 
-  const animatedStyle = useAnimatedStyle(() => {
+  const animatedStyle = useAnimatedStyle(() => ({
       color: '#00EC97',
       transform: [{ scale: pulseAnim.value }],
-    };
-  });
+  }));
 
   const getIconColor = () => {
     if (agentsInRange.length === 0) return '#6B7280'; // Gray
@@ -90,19 +89,19 @@ export default function NotificationIcon({ agentsInRange, userLocation, onPress 
         <View style={styles.tooltip}>
           <Text style={styles.tooltipText}>
             {agentsInRange.length} NEAR agent{agentsInRange.length !== 1 ? 's' : ''} nearby
-        </Text>
-        {userLocation && (
-          <View style={styles.locationInfo}>
-            <MapPin size={12} color="#00EC97" strokeWidth={2} />
-            <Text style={styles.locationText}>
-              {userLocation.latitude.toFixed(4)}, {userLocation.longitude.toFixed(4)}
-            </Text>
-          </View>
-        )}
-      </View>
-    )}
-  </View>
-);
+          </Text>
+          {userLocation && (
+            <View style={styles.locationInfo}>
+              <MapPin size={12} color="#00EC97" strokeWidth={2} />
+              <Text style={styles.locationText}>
+                {userLocation.latitude.toFixed(4)}, {userLocation.longitude.toFixed(4)}
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
