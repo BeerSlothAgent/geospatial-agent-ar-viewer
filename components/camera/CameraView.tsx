@@ -506,7 +506,7 @@ export default function ARCameraView({
           {/* AR Status Info */}
           <View style={styles.arStatus}>
             <Text style={styles.arStatusText}>
-              3D Agents: {objects.length} ({agentsInRange.length} in range)
+              NEAR Agents: {objects.length} ({agentsInRange.length} in range)
             </Text>
             {userLocation && (
               <Text style={styles.arStatusText}>
@@ -514,7 +514,7 @@ export default function ARCameraView({
               </Text>
             )}
             <Text style={styles.arStatusText}>
-              Camera: {facing} • Ready for AR
+              Camera: {facing} • Ready for NeAR
             </Text>
           </View>
 
@@ -556,7 +556,7 @@ export default function ARCameraView({
           
           <View style={styles.statusIndicator}>
             <Animated.View style={[styles.statusDot, pulseStyle]} />
-            <Text style={styles.statusText}>AR Ready</Text>
+            <Text style={styles.statusText}>NeAR Ready</Text>
           </View>
           
           <TouchableOpacity
@@ -589,7 +589,7 @@ export default function ARCameraView({
             activeOpacity={0.8}
           >
             <Animated.View style={pulseStyle}>
-              <Text style={styles.arIndicatorLabel}>Total</Text>
+              <Text style={styles.arIndicatorLabel}>NEAR Agents</Text>
             </Animated.View>
             
             {agentsInRange.length > 0 && (
@@ -598,13 +598,13 @@ export default function ARCameraView({
                 <Text style={styles.arIndicatorLabel}>In Range</Text>
               </Animated.View>
             )}
-            <Text style={styles.arModeButtonText}>Full AR Mode</Text>
+            <Text style={styles.arModeButtonText}>Full NeAR Mode</Text>
           </TouchableOpacity>
           
           <Text style={styles.objectsAvailable}>
             {objects.length > 0 
-              ? `${objects.length} 3D agents visible • Tap to interact`
-              : 'Demo agents available for testing'
+              ? `${objects.length} NEAR agents visible • Tap to interact`
+              : 'Demo NEAR agents available for testing'
             }
           </Text>
         </View>
@@ -612,11 +612,11 @@ export default function ARCameraView({
         {/* Bottom Controls */}
         <View style={styles.bottomControls}>          
           <View style={styles.arInfo}>
-            <Text style={styles.arInfoText}>AR Objects Overlaid on Camera</Text>
+            <Text style={styles.arInfoText}>NEAR Objects Overlaid on Camera</Text>
             <Text style={styles.arInfoSubtext}>
               {visibleARObjects.length > 0 
-                ? `${visibleARObjects.length} objects visible • Tap to interact`
-                : 'Move camera to find AR objects'
+                ? `${visibleARObjects.length} NEAR objects visible • Tap to interact`
+                : 'Move camera to find NEAR objects'
               }
             </Text>
           </View>
@@ -638,8 +638,8 @@ export default function ARCameraView({
         {/* AR Object Indicators */}
         <View style={styles.arIndicators}>
           <Animated.View style={[styles.arIndicator, pulseStyle]}>
-            <Text style={styles.arIndicatorText}>{objects.length}</Text>
-            <Text style={styles.arIndicatorLabel}>Agents</Text>
+            <Text style={styles.arIndicatorText}>{objects.length}</Text> 
+            <Text style={styles.arIndicatorLabel}>NEAR Agents</Text>
           </Animated.View>
         </View>
       </Animated.View>
@@ -648,9 +648,9 @@ export default function ARCameraView({
       {!isCameraReady && (
         <View style={styles.loadingOverlay}>
           <LoadingSpinner size={48} />
-          <Text style={styles.loadingText}>Initializing AR Camera...</Text>
+          <Text style={styles.loadingText}>Initializing NeAR Camera...</Text>
           <Text style={styles.loadingSubtext}>
-            Preparing to overlay {objects.length} AR objects
+            Preparing to overlay {objects.length} NEAR objects
           </Text>
         </View>
       )}
@@ -1155,17 +1155,17 @@ const styles = StyleSheet.create({
     padding: 10,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#00d4ff',
+    borderColor: '#00EC97',
     minWidth: 50,
   },
   inRangeIndicator: {
-    backgroundColor: 'rgba(0, 212, 255, 0.2)',
-    borderColor: '#00d4ff',
+    backgroundColor: 'rgba(0, 236, 151, 0.2)',
+    borderColor: '#00EC97',
   },
   arIndicatorText: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#00d4ff',
+    color: '#00EC97',
   },
   arIndicatorLabel: {
     fontSize: 10,

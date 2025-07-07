@@ -136,14 +136,14 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
               {/* Agent Label */}
               <View style={styles.agentLabel}>
                 <Text style={styles.agentName} numberOfLines={1}>
-                  {agent.name || `Agent ${index + 1}`}
+                  {agent.name || `NEAR Agent ${index + 1}`}
                 </Text>
                 <Text style={styles.agentDistance}>
                   {positionData.distance.toFixed(1)}m
                 </Text>
                 {isInRange && (
                   <View style={styles.inRangeBadge}>
-                    <Text style={styles.inRangeText}>In Range</Text>
+                    <Text style={styles.inRangeText}>NEAR Range</Text>
                   </View>
                 )}
               </View>
@@ -163,7 +163,7 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
         <View style={styles.modalOverlay}>
           <View style={styles.agentInfoCard}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{selectedAgent?.name || 'Agent'}</Text>
+              <Text style={styles.modalTitle}>{selectedAgent?.name || 'NEAR Agent'}</Text>
               <TouchableOpacity 
                 style={styles.closeButton}
                 onPress={() => setShowAgentModal(false)}
@@ -173,7 +173,7 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
             </View>
             
             <View style={styles.agentTypeContainer}>
-              <Text style={styles.agentType}>{selectedAgent?.object_type || 'Unknown Type'}</Text>
+              <Text style={styles.agentType}>NEAR {selectedAgent?.object_type || 'Agent'}</Text>
             </View>
             
             {selectedAgent?.description && (
@@ -201,7 +201,7 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
                 <View style={styles.detailItem}>
                   <Zap size={16} color="#00d4ff" strokeWidth={2} />
                   <Text style={styles.detailText}>
-                    Fee: {selectedAgent.interaction_fee_usdfc} USDFC
+                    Fee: {selectedAgent.interaction_fee_usdfc} USDFC on NEAR
                   </Text>
                 </View>
               )}
@@ -216,7 +216,7 @@ export default function ARAgentScene({ agents, userLocation, onAgentSelect }: AR
                 }
               }}
             >
-              <Text style={styles.interactButtonText}>Interact</Text>
+              <Text style={styles.interactButtonText}>Interact with NEAR Agent</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   inRangeBadge: {
-    backgroundColor: '#00d4ff',
+    backgroundColor: '#00EC97',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -352,13 +352,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   interactButton: {
-    backgroundColor: '#00d4ff',
+    backgroundColor: '#00EC97',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
   },
   interactButtonText: {
-    color: 'white',
+    color: 'black',
     fontSize: 16,
     fontWeight: '600',
   },

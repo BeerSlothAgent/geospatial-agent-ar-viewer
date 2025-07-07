@@ -248,9 +248,9 @@ export default function ARView({
       <View style={styles.container}>
         <View style={styles.errorOverlay}>
           <View style={styles.errorContainer}>
-            <Text style={styles.errorTitle}>WebGL Not Supported</Text>
+            <Text style={styles.errorTitle}>WebGL Not Supported for NeAR</Text>
             <Text style={styles.errorMessage}>
-              Your browser doesn't support WebGL, which is required for AR functionality. 
+              Your browser doesn't support WebGL, which is required for NeAR functionality. 
               Please use a modern browser like Chrome, Firefox, Safari, or Edge.
             </Text>
             <Text style={styles.finalErrorText}>
@@ -268,7 +268,7 @@ export default function ARView({
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
           <LoadingSpinner size={40} />
-          <Text style={styles.loadingText}>Checking browser compatibility...</Text>
+          <Text style={styles.loadingText}>Checking browser compatibility for NeAR...</Text>
         </View>
       </View>
     );
@@ -305,7 +305,7 @@ export default function ARView({
       {initializationError && !sessionState.isLoading && webGLSupported && (
         <View style={styles.errorOverlay}>
           <View style={styles.errorContainer}>
-            <Text style={styles.errorTitle}>AR Initialization Failed</Text>
+            <Text style={styles.errorTitle}>NeAR Initialization Failed</Text>
             <Text style={styles.errorMessage}>{initializationError}</Text>
             {retryCount < maxRetries ? (
               <View style={styles.retryInfo}>

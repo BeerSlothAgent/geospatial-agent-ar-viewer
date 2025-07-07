@@ -42,7 +42,7 @@ export default function NotificationIcon({ agentsInRange, userLocation, onPress 
   }, [agentsInRange.length]);
 
   const animatedStyle = useAnimatedStyle(() => {
-    return {
+      color: '#00EC97',
       transform: [{ scale: pulseAnim.value }],
     };
   });
@@ -50,13 +50,13 @@ export default function NotificationIcon({ agentsInRange, userLocation, onPress 
   const getIconColor = () => {
     if (agentsInRange.length === 0) return '#6B7280'; // Gray
     if (agentsInRange.length <= 2) return '#F59E0B'; // Amber
-    return '#EF4444'; // Red
+    return '#00EC97'; // NEAR green
   };
 
   const getBackgroundColor = () => {
     if (agentsInRange.length === 0) return 'rgba(107, 114, 128, 0.1)';
     if (agentsInRange.length <= 2) return 'rgba(245, 158, 11, 0.1)';
-    return 'rgba(239, 68, 68, 0.1)';
+    return 'rgba(0, 236, 151, 0.1)';
   };
 
   return (
@@ -89,11 +89,11 @@ export default function NotificationIcon({ agentsInRange, userLocation, onPress 
       {isInRange && (
         <View style={styles.tooltip}>
           <Text style={styles.tooltipText}>
-            {agentsInRange.length} agent{agentsInRange.length !== 1 ? 's' : ''} nearby
+            {agentsInRange.length} NEAR agent{agentsInRange.length !== 1 ? 's' : ''} nearby
         </Text>
         {userLocation && (
           <View style={styles.locationInfo}>
-            <MapPin size={12} color="#00d4ff" strokeWidth={2} />
+            <MapPin size={12} color="#00EC97" strokeWidth={2} />
             <Text style={styles.locationText}>
               {userLocation.latitude.toFixed(4)}, {userLocation.longitude.toFixed(4)}
             </Text>

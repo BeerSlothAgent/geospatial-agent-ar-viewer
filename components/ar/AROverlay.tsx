@@ -41,7 +41,7 @@ export default function AROverlay({
             {sessionState.isLoading ? (
               <LoadingSpinner size={16} />
             ) : sessionState.isActive ? (
-              <Wifi size={16} color="#00ff88" strokeWidth={2} />
+              <Wifi size={16} color="#00EC97" strokeWidth={2} />
             ) : (
               <WifiOff size={16} color="#ff6b35" strokeWidth={2} />
             )}
@@ -51,16 +51,16 @@ export default function AROverlay({
           </View>
 
           <View style={styles.statusItem}>
-            <Cube size={16} color="#00d4ff" strokeWidth={2} />
+            <Cube size={16} color="#00EC97" strokeWidth={2} />
             <Text style={styles.statusText}>
-              {sessionState.objectsLoaded} objects
+              {sessionState.objectsLoaded} NEAR objects
             </Text>
           </View>
 
           <View style={styles.statusItem}>
-            <Eye size={16} color="#00d4ff" strokeWidth={2} />
+            <Eye size={16} color="#00EC97" strokeWidth={2} />
             <Text style={styles.statusText}>
-              {objectsInView.length} visible
+              {objectsInView.length} NEAR visible
             </Text>
           </View>
         </View>
@@ -73,7 +73,7 @@ export default function AROverlay({
             <View style={styles.crosshairLine} />
             <View style={[styles.crosshairLine, styles.crosshairLineVertical]} />
           </View>
-          <Target size={24} color="#00d4ff" strokeWidth={2} style={styles.crosshairIcon} />
+          <Target size={24} color="#00EC97" strokeWidth={2} style={styles.crosshairIcon} />
         </View>
       )}
 
@@ -137,7 +137,7 @@ export default function AROverlay({
         {/* Objects in View */}
         {objectsInView.length > 0 && (
           <View style={styles.objectsContainer}>
-            <Text style={styles.objectsTitle}>Objects in View</Text>
+            <Text style={styles.objectsTitle}>NEAR Objects in View</Text>
             <View style={styles.objectsList}>
               {objectsInView.slice(0, 3).map((objectId) => (
                 <TouchableOpacity
@@ -146,8 +146,8 @@ export default function AROverlay({
                   onPress={() => onObjectSelect?.(objectId)}
                   activeOpacity={0.7}
                 >
-                  <Cube size={16} color="#00d4ff" strokeWidth={2} />
-                  <Text style={styles.objectText}>Object {objectId.slice(0, 8)}</Text>
+                  <Cube size={16} color="#00EC97" strokeWidth={2} />
+                  <Text style={styles.objectText}>NEAR Object {objectId.slice(0, 8)}</Text>
                 </TouchableOpacity>
               ))}
               {objectsInView.length > 3 && (
@@ -164,9 +164,9 @@ export default function AROverlay({
       {sessionState.isLoading && (
         <View style={styles.loadingOverlay}>
           <LoadingSpinner size={48} />
-          <Text style={styles.loadingText}>Initializing AR Session...</Text>
+          <Text style={styles.loadingText}>Initializing NeAR Session...</Text>
           <Text style={styles.loadingSubtext}>
-            Setting up 3D rendering and object tracking
+            Setting up NEAR 3D rendering and object tracking
           </Text>
         </View>
       )}
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 1,
-    backgroundColor: '#00d4ff',
+    backgroundColor: '#00EC97',
     opacity: 0.8,
   },
   crosshairLineVertical: {
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
   objectItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 212, 255, 0.2)',
+    backgroundColor: 'rgba(0, 236, 151, 0.2)',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
   objectText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#00d4ff',
+    color: '#00EC97',
   },
   moreObjectsText: {
     fontSize: 12,

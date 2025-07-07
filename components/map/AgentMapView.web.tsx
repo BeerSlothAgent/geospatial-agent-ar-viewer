@@ -359,9 +359,9 @@ export default function AgentMapView({
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Text style={styles.headerTitle}>Nearby Agents</Text>
+          <Text style={styles.headerTitle}>Nearby NEAR Agents</Text>
           <Text style={styles.headerSubtitle}>
-            {agentsInRange.length} agent{agentsInRange.length !== 1 ? 's' : ''} in range
+            {agentsInRange.length} NEAR agent{agentsInRange.length !== 1 ? 's' : ''} in range
           </Text>
         </View>
         <View style={styles.headerRight}>
@@ -416,7 +416,7 @@ export default function AgentMapView({
           onPress={onSwitchToCamera}
         >
           <Camera size={20} color="white" />
-          <Text style={styles.switchButtonText}>Switch to AR Camera</Text>
+          <Text style={styles.switchButtonText}>Switch to NeAR Camera</Text>
         </TouchableOpacity>
       </View>
 
@@ -551,7 +551,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   switchButton: {
-    backgroundColor: '#00d4ff',
+    backgroundColor: '#00EC97',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -619,7 +619,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   interactButton: {
-    backgroundColor: '#00d4ff',
+    backgroundColor: '#00EC97',
     paddingVertical: 8,
     borderRadius: 8,
     alignItems: 'center',
@@ -633,11 +633,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 120,
     left: 20,
-    backgroundColor: 'rgba(26, 26, 26, 0.9)',
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
     padding: 12,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: '#00EC97',
     zIndex: 10,
   },
   legendTitle: {

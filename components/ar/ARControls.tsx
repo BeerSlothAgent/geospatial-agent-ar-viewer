@@ -57,8 +57,8 @@ export default function ARControls({
       {sessionState.isActive && (
         <View style={styles.bottomInfo}>
           <View style={styles.infoCard}>
-            <Text style={styles.infoText}>
-              Move your device to look around • Tap objects to interact
+            <Text style={styles.infoText}> 
+              Move your device to look around • Tap NEAR objects to interact
             </Text>
           </View>
         </View>
