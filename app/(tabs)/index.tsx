@@ -11,7 +11,7 @@ import {
   Modal,
   Alert,
 } from 'react-native';
-import { Camera, MapPin, Zap, Globe, ArrowRight, Play, CircleCheck as CheckCircle, Smartphone, Monitor, Tablet, Navigation, Database, MessageCircle, Mic, Users, Wallet, Bell } from 'lucide-react-native';
+import { Camera, MapPin, Zap, Globe, ArrowRight, Play, CircleCheck as CheckCircle, Smartphone, Monitor, Tablet, Navigation, Database, MessageCircle, Mic, Users, Wallet, Bell, Coins } from 'lucide-react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -401,8 +401,11 @@ export default function HomePage() {
         <View style={styles.headerContainer}>
           <View style={styles.headerContent}>
             <View style={styles.headerLeft}>
-              <Text style={styles.headerTitle}>AR Viewer</Text>
-              <Text style={styles.headerSubtitle}>Agent Reality</Text>
+              <Text style={styles.headerTitle}>
+                <Text style={styles.nearBrandingNe}>Ne</Text>
+                <Text style={styles.nearBrandingAr}>AR</Text> Viewer
+              </Text>
+              <Text style={styles.headerSubtitle}>Discover NEAR Agents in Your Near World</Text>
             </View>
             
             <View style={styles.headerButtons}>
@@ -417,6 +420,7 @@ export default function HomePage() {
                     <Text style={styles.notificationBadgeText}>{agentsInRange.length}</Text>
                   </View>
                 )}
+                <Text style={styles.nearPoweredText}>Powered by NEAR Protocol</Text>
               </TouchableOpacity>
               
               <TouchableOpacity
@@ -440,18 +444,21 @@ export default function HomePage() {
           <Animated.View style={[styles.heroContent, fadeStyle]}>
             <View style={styles.logoContainer}>
               <View style={styles.logoIcon}>
-                <Camera size={32} color="#00d4ff" strokeWidth={2} />
+                <Camera size={32} color="#00EC97" strokeWidth={2} />
               </View>
-              <Text style={styles.logoText}>AR Viewer</Text>
+              <Text style={styles.logoText}>
+                <Text style={styles.nearBrandingNe}>Ne</Text>
+                <Text style={styles.nearBrandingAr}>AR</Text> Viewer
+              </Text>
             </View>
             
             <Text style={styles.heroTitle}>
-              Intelligent GeoAgent{'\n'}
-              <Text style={styles.heroTitleAccent}>AR Experience</Text>
+              Intelligent NEAR Agent{'\n'}
+              <Text style={styles.heroTitleAccent}>Augmented Reality</Text>
             </Text>
             
             <Text style={styles.heroSubtitle}>
-              Chat, interact, and collaborate with AI agents positioned at precise real-world locations using GEODNET RTK precision
+              Chat, interact, and collaborate with NEAR-powered AI agents positioned at precise real-world locations using GEODNET RTK precision
             </Text>
             
             <View style={styles.heroButtons}>
@@ -471,6 +478,7 @@ export default function HomePage() {
                     !isARButtonEnabled && styles.primaryButtonTextDisabled
                   ]}>
                     {getInitializationMessage()}
+                    <Text style={styles.nearPoweredSmall}>Powered by NEAR</Text>
                   </Text>
                 </TouchableOpacity>
               </Animated.View>
@@ -487,7 +495,7 @@ export default function HomePage() {
 
             {/* System Status Display */}
             <View style={styles.systemStatus}>
-              <Text style={styles.systemStatusTitle}>Agent Network Status</Text>
+              <Text style={styles.systemStatusTitle}>NEAR Agent Network Status</Text>
               <View style={styles.systemStatusItems}>
                 <StatusBadge 
                   status={hasLocationPermission && !!location ? 'success' : 'pending'} 
@@ -496,12 +504,12 @@ export default function HomePage() {
                 />
                 <StatusBadge 
                   status={isSupabaseConfigured ? (isDatabaseConnected ? 'success' : 'pending') : 'pending'} 
-                  text={`Agent Network: ${isSupabaseConfigured ? (isDatabaseConnected ? 'Connected' : 'Demo Mode') : 'Demo Mode'}`}
+                  text={`NEAR Network: ${isSupabaseConfigured ? (isDatabaseConnected ? 'Connected' : 'Demo Mode') : 'Demo Mode'}`}
                   size="small"
                 />
                 <StatusBadge 
                   status={nearbyObjects.length > 0 ? 'success' : 'pending'} 
-                  text={`Active GeoAgents: ${nearbyObjects.length}`}
+                  text={`Active NEAR Agents: ${nearbyObjects.length}`}
                   size="small"
                 />
               </View>
@@ -511,7 +519,7 @@ export default function HomePage() {
 
         {/* Location Services Section */}
         <View style={styles.locationSection}>
-          <Text style={styles.sectionTitle}>RTK Precision Location</Text>
+          <Text style={styles.sectionTitle}>NEAR RTK Precision Location</Text>
           
           <LocationDisplay
             location={location}
@@ -540,7 +548,7 @@ export default function HomePage() {
               onPress={() => isMounted.current && setShowLocationDetails(true)}
               activeOpacity={0.7}
             >
-              <Navigation size={16} color="#00d4ff" strokeWidth={2} />
+              <Navigation size={16} color="#00EC97" strokeWidth={2} />
               <Text style={styles.expandButtonText}>View RTK Precision Details</Text>
               <ArrowRight size={16} color="#00d4ff" strokeWidth={2} />
             </TouchableOpacity>
@@ -549,7 +557,7 @@ export default function HomePage() {
 
         {/* Agent Network Section */}
         <View style={styles.databaseSection}>
-          <Text style={styles.sectionTitle}>Agent Network Connection</Text>
+          <Text style={styles.sectionTitle}>NEAR Agent Network Connection</Text>
           
           <DatabaseStatus
             state={{
@@ -581,43 +589,43 @@ export default function HomePage() {
               onPress={() => isMounted.current && setShowDatabaseDetails(true)}
               activeOpacity={0.7}
             >
-              <Database size={16} color="#00d4ff" strokeWidth={2} />
-              <Text style={styles.expandButtonText}>View Agent Network Details</Text>
-              <ArrowRight size={16} color="#00d4ff" strokeWidth={2} />
+              <Database size={16} color="#00EC97" strokeWidth={2} />
+              <Text style={styles.expandButtonText}>View NEAR Agent Network Details</Text>
+              <ArrowRight size={16} color="#00EC97" strokeWidth={2} />
             </TouchableOpacity>
           )}
         </View>
 
         {/* Features Section */}
         <View style={styles.featuresSection}>
-          <Text style={styles.sectionTitle}>Agent Interaction Capabilities</Text>
+          <Text style={styles.sectionTitle}>NEAR Agent Interaction Capabilities</Text>
           
           <View style={styles.featuresGrid}>
             <FeatureCard
-              icon={<MessageCircle size={24} color="#00d4ff" strokeWidth={2} />}
-              title="Chat with Agents"
-              description="Text-based conversations with AI agents at precise locations"
+              icon={<MessageCircle size={24} color="#00EC97" strokeWidth={2} />}
+              title="Chat with NEAR Agents"
+              description="Text-based conversations with NEAR-powered AI agents at precise locations"
               delay={0}
             />
             
             <FeatureCard
-              icon={<Mic size={24} color="#00d4ff" strokeWidth={2} />}
+              icon={<Mic size={24} color="#00EC97" strokeWidth={2} />}
               title="Voice Interaction"
-              description="Natural voice conversations with intelligent GeoAgents"
+              description="Natural voice conversations with intelligent NEAR Agents"
               delay={200}
             />
             
             <FeatureCard
-              icon={<MapPin size={24} color="#00d4ff" strokeWidth={2} />}
+              icon={<MapPin size={24} color="#00EC97" strokeWidth={2} />}
               title="RTK Precision"
               description="GEODNET-corrected coordinates for millimeter accuracy"
               delay={400}
             />
             
             <FeatureCard
-              icon={<Users size={24} color="#00d4ff" strokeWidth={2} />}
-              title="Agent Community"
-              description="Discover agents with unique personalities and skills"
+              icon={<Coins size={24} color="#00EC97" strokeWidth={2} />}
+              title="NEAR Payments"
+              description="Seamless USDFC payments for NEAR agent interactions"
               delay={600}
             />
           </View>
@@ -625,7 +633,7 @@ export default function HomePage() {
 
         {/* Demo Section */}
         <View style={styles.demoSection}>
-          <Text style={styles.sectionTitle}>Experience Agent Reality</Text>
+          <Text style={styles.sectionTitle}>Experience NEAR Agent Reality</Text>
           
           <View style={styles.demoContainer}>
             <Image
@@ -646,9 +654,9 @@ export default function HomePage() {
             </View>
             
             <View style={styles.demoInfo}>
-              <Text style={styles.demoTitle}>Interactive Agent AR Demo</Text>
+              <Text style={styles.demoTitle}>Interactive NEAR Agent Demo</Text>
               <Text style={styles.demoDescription}>
-                Experience live camera feed with intelligent AI agents positioned at exact real-world coordinates
+                Experience live camera feed with NEAR-powered intelligent AI agents positioned at exact real-world coordinates
               </Text>
             </View>
           </View>
@@ -687,26 +695,26 @@ export default function HomePage() {
           <View style={styles.statusCard}>
             <View style={styles.statusHeader}>
               <View style={[styles.statusIndicator, { backgroundColor: systemStatus === 'ready' ? '#00ff88' : systemStatus === 'partial' ? '#ff9500' : '#ff6b35' }]} />
-              <Text style={styles.statusTitle}>Agent World Status</Text>
+              <Text style={styles.statusTitle}>NEAR Agent World Status</Text>
             </View>
             
             <View style={styles.statusItems}>
               <StatusItem label="Camera Access" status={true} />
               <StatusItem label="AR Framework" status={systemReady} />
               <StatusItem label="RTK Precision" status={hasLocationPermission && !!location} />
-              <StatusItem label="Agent Network" status={isSupabaseConfigured ? isDatabaseConnected : true} />
-              <StatusItem label="GeoAgents Available" status={nearbyObjects.length > 0} />
+              <StatusItem label="NEAR Network" status={isSupabaseConfigured ? isDatabaseConnected : true} />
+              <StatusItem label="NEAR Agents Available" status={nearbyObjects.length > 0} />
             </View>
             
             <View style={styles.statusBadges}>
               <StatusBadge 
                 status={systemStatus === 'ready' ? 'success' : systemStatus === 'partial' ? 'pending' : 'error'} 
-                text={systemStatus === 'ready' ? 'Ready for Agents' : systemStatus === 'partial' ? 'Demo Mode Ready' : 'Initializing'} 
+                text={systemStatus === 'ready' ? 'Ready for NEAR Agents' : systemStatus === 'partial' ? 'Demo Mode Ready' : 'Initializing'} 
                 size="small"
               />
               <StatusBadge 
                 status="success" 
-                text="Phase 5: Agent AR Complete" 
+                text="Phase 5: NEAR Agent AR Complete" 
                 size="small"
               />
             </View>
@@ -716,10 +724,10 @@ export default function HomePage() {
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            Built for the AgentSphere ecosystem
+            Built for the NEAR Protocol ecosystem
           </Text>
           <Text style={styles.footerSubtext}>
-            GeoAgent AR Viewer • Version 1.0.0 • Agent Reality Ready
+            NeAR Viewer • Version 1.0.0 • Powered by NEAR Protocol
           </Text>
         </View>
       </ScrollView>
@@ -749,7 +757,7 @@ export default function HomePage() {
       >
         <View style={styles.walletModalContainer}>
           <View style={styles.walletModalHeader}>
-            <Text style={styles.walletModalTitle}>Algorand Wallet</Text>
+            <Text style={styles.walletModalTitle}>NEAR Wallet</Text>
             <TouchableOpacity
               style={styles.walletModalClose}
               onPress={() => setShowWalletModal(false)}
@@ -760,7 +768,7 @@ export default function HomePage() {
             {agentsInRange.length > 0 && (
               <View style={styles.agentBadge}>
                 <Text style={styles.agentBadgeText}>
-                  {agentsInRange.length} agent{agentsInRange.length !== 1 ? 's' : ''} in range
+                  {agentsInRange.length} NEAR agent{agentsInRange.length !== 1 ? 's' : ''} in range
                   </Text>
                 </View>
               )}
@@ -909,13 +917,35 @@ export default function HomePage() {
     headerTitle: {
       fontSize: 22,
       fontWeight: '800',
-      color: '#fff',
+      color: '#00EC97',
       marginBottom: 2,
+    },
+    nearBrandingNe: {
+      color: '#00EC97',
+      fontWeight: '900',
+    },
+    nearBrandingAr: {
+      color: '#0066FF',
+      fontWeight: '700',
     },
     headerSubtitle: {
       fontSize: 14,
-      color: '#00d4ff',
+      color: '#6B46C1',
       fontWeight: '500',
+    },
+    nearPoweredText: {
+      position: 'absolute',
+      bottom: -15,
+      right: 0,
+      fontSize: 10,
+      color: '#00EC97',
+      fontWeight: '500',
+    },
+    nearPoweredSmall: {
+      fontSize: 10,
+      color: '#000',
+      opacity: 0.7,
+      marginTop: 4,
     },
     headerButtons: {
       flexDirection: 'row',
@@ -926,11 +956,11 @@ export default function HomePage() {
       width: 40,
       height: 40,
       borderRadius: 20,
-      backgroundColor: '#1a1a1a',
+      backgroundColor: '#000000',
       justifyContent: 'center',
       alignItems: 'center',
       borderWidth: 1,
-      borderColor: '#333',
+      borderColor: '#00EC97',
     },
     notificationBadge: {
       position: 'absolute',
@@ -939,7 +969,7 @@ export default function HomePage() {
       width: 18,
       height: 18,
       borderRadius: 9,
-      backgroundColor: '#00d4ff',
+      backgroundColor: '#00EC97',
       justifyContent: 'center',
       alignItems: 'center',
       borderWidth: 1,
@@ -951,7 +981,7 @@ export default function HomePage() {
       fontWeight: 'bold',
     },
     agentBadge: {
-      backgroundColor: 'rgba(245, 158, 11, 0.2)',
+      backgroundColor: 'rgba(0, 236, 151, 0.2)',
       paddingHorizontal: 8,
       paddingVertical: 2,
       borderRadius: 12,
@@ -959,25 +989,25 @@ export default function HomePage() {
       alignSelf: 'flex-start',
     },
     agentBadgeText: {
-      color: '#F59E0B',
+      color: '#00EC97',
       fontSize: 12,
       fontWeight: '500',
     },
     walletButton: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: '#1a1a1a',
+      backgroundColor: '#000000',
       paddingHorizontal: 16,
       paddingVertical: 10,
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: '#9333ea',
+      borderColor: '#00EC97',
       gap: 8,
     },
     walletButtonText: {
       fontSize: 14,
       fontWeight: '600',
-      color: '#9333ea',
+      color: '#00EC97',
     },
     
     // Wallet Modal
@@ -1004,7 +1034,7 @@ export default function HomePage() {
     walletModalClose: {
       paddingHorizontal: 16,
       paddingVertical: 8,
-      backgroundColor: '#9333ea',
+      backgroundColor: '#00EC97',
       borderRadius: 8,
     },
     walletModalCloseText: {
@@ -1057,7 +1087,7 @@ export default function HomePage() {
       width: 48,
       height: 48,
       borderRadius: 12,
-      backgroundColor: '#00d4ff20',
+      backgroundColor: 'rgba(0, 236, 151, 0.2)',
       justifyContent: 'center',
       alignItems: 'center',
       marginRight: 12,
@@ -1065,7 +1095,7 @@ export default function HomePage() {
     logoText: {
       fontSize: 24,
       fontWeight: '700',
-      color: '#fff',
+      color: '#00EC97',
     },
     heroTitle: {
       fontSize: 42,
@@ -1076,7 +1106,7 @@ export default function HomePage() {
       marginBottom: 16,
     },
     heroTitleAccent: {
-      color: '#00d4ff',
+      color: '#00EC97',
     },
     heroSubtitle: {
       fontSize: 16,
@@ -1094,7 +1124,7 @@ export default function HomePage() {
     primaryButton: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: '#00d4ff',
+      backgroundColor: '#00EC97',
       paddingHorizontal: 32,
       paddingVertical: 16,
       borderRadius: 12,
@@ -1124,7 +1154,7 @@ export default function HomePage() {
     secondaryButtonText: {
       fontSize: 16,
       fontWeight: '500',
-      color: '#00d4ff',
+      color: '#00EC97',
     },
   
     // System Status
@@ -1139,7 +1169,7 @@ export default function HomePage() {
     systemStatusTitle: {
       fontSize: 14,
       fontWeight: '600',
-      color: '#00d4ff',
+      color: '#00EC97',
       marginBottom: 12,
       textAlign: 'center',
     },
@@ -1172,7 +1202,7 @@ export default function HomePage() {
     expandButtonText: {
       fontSize: 14,
       fontWeight: '600',
-      color: '#00d4ff',
+      color: '#00EC97',
     },
   
     // Database Section
@@ -1210,7 +1240,7 @@ export default function HomePage() {
       width: 48,
       height: 48,
       borderRadius: 12,
-      backgroundColor: '#00d4ff20',
+      backgroundColor: 'rgba(0, 236, 151, 0.2)',
       justifyContent: 'center',
       alignItems: 'center',
       marginBottom: 16,
@@ -1256,7 +1286,7 @@ export default function HomePage() {
       width: 60,
       height: 60,
       borderRadius: 30,
-      backgroundColor: '#00d4ff',
+      backgroundColor: '#00EC97',
       justifyContent: 'center',
       alignItems: 'center',
     },

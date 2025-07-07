@@ -159,7 +159,7 @@ export default function PreciseLocationService({
             {getSourceIcon()}
           </View>
           <View>
-            <Text style={styles.title}>Precise Location</Text>
+            <Text style={styles.title}>NEAR Precise Location</Text>
             <Text style={styles.subtitle}>{getSourceLabel()}</Text>
           </View>
         </View>
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 8,
-    backgroundColor: '#00d4ff20',
+    backgroundColor: 'rgba(0, 236, 151, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -410,18 +410,18 @@ const styles = StyleSheet.create({
   refreshButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#00d4ff',
+    color: '#00EC97',
   },
   
   // Info
   infoSection: {
-    backgroundColor: '#00d4ff20',
+    backgroundColor: 'rgba(0, 236, 151, 0.2)',
     borderRadius: 8,
     padding: 12,
   },
   infoText: {
     fontSize: 12,
-    color: '#00d4ff',
+    color: '#00EC97',
     lineHeight: 16,
     textAlign: 'center',
   },

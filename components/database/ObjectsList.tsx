@@ -59,12 +59,12 @@ export default function ObjectsList({
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.iconContainer}>
-            <Cube size={24} color="#00d4ff" strokeWidth={2} />
+            <Cube size={24} color="#00EC97" strokeWidth={2} />
           </View>
           <View>
-            <Text style={styles.title}>AR Objects</Text>
+            <Text style={styles.title}>NEAR AR Objects</Text>
             <Text style={styles.subtitle}>
-              {isLoading ? 'Loading...' : `${objects.length} objects nearby`}
+              {isLoading ? 'Loading...' : `${objects.length} NEAR objects nearby`}
             </Text>
           </View>
         </View>
@@ -121,7 +121,7 @@ export default function ObjectsList({
       {objects.length > 0 && (
         <View style={styles.infoSection}>
           <Text style={styles.infoText}>
-            Objects are loaded based on your current location and visibility radius.
+            NEAR objects are loaded based on your current location and visibility radius.
           </Text>
         </View>
       )}
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 8,
-    backgroundColor: '#00d4ff20',
+    backgroundColor: 'rgba(0, 236, 151, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modelType: {
-    backgroundColor: '#00d4ff20',
+    backgroundColor: 'rgba(0, 236, 151, 0.2)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
@@ -391,10 +391,10 @@ const styles = StyleSheet.create({
   modelTypeText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#00d4ff',
+    color: '#00EC97',
   },
   nearbyBadge: {
-    backgroundColor: '#00ff8820',
+    backgroundColor: 'rgba(0, 236, 151, 0.2)',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
@@ -402,18 +402,18 @@ const styles = StyleSheet.create({
   nearbyBadgeText: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#00ff88',
+    color: '#00EC97',
   },
   
   // Info
   infoSection: {
-    backgroundColor: '#00d4ff20',
+    backgroundColor: 'rgba(0, 236, 151, 0.2)',
     borderRadius: 8,
     padding: 12,
   },
   infoText: {
     fontSize: 12,
-    color: '#00d4ff',
+    color: '#00EC97',
     lineHeight: 16,
     textAlign: 'center',
   },

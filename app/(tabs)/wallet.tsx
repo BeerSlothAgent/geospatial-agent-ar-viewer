@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { Wallet } from 'lucide-react-native';
+import { Wallet, Coins } from 'lucide-react-native';
 import ThirdwebWalletConnect from '@/components/wallet/ThirdwebWalletConnect';
 
 export default function WalletScreen() {
@@ -9,11 +9,11 @@ export default function WalletScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerIcon}>
-          <Wallet size={24} color="#9333ea" strokeWidth={2} />
+          <Coins size={24} color="#00EC97" strokeWidth={2} />
         </View>
-        <Text style={styles.headerTitle}>Wallet Connection</Text>
+        <Text style={styles.headerTitle}>NEAR Wallet Connection</Text>
         <Text style={styles.headerSubtitle}>
-          Connect your wallet to interact with the AR ecosystem
+          Connect your NEAR wallet to interact with the NeAR ecosystem
         </Text>
       </View>
 
@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#ede9fe',
+    backgroundColor: 'rgba(0, 236, 151, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -54,12 +54,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#111827',
+    color: '#000000',
     marginBottom: 8,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: '#6b7280',
+    color: '#6B46C1',
     textAlign: 'center',
     lineHeight: 24,
   },

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { createThirdwebClient } from "thirdweb";
 import { ConnectButton } from "thirdweb/react";
 import { inAppWallet, createWallet } from "thirdweb/wallets";
-import { Wallet } from 'lucide-react-native';
+import { Wallet, Coins } from 'lucide-react-native';
 
 const client = createThirdwebClient({
   clientId: "1928bd7fecdee2c34a7a508ae42db420",
@@ -37,11 +37,11 @@ export default function ThirdwebWalletConnect() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerIcon}>
-          <Wallet size={24} color="#9333ea" strokeWidth={2} />
+          <Coins size={24} color="#00EC97" strokeWidth={2} />
         </View>
-        <Text style={styles.headerTitle}>Connect Wallet</Text>
+        <Text style={styles.headerTitle}>Connect NEAR Wallet</Text>
         <Text style={styles.headerSubtitle}>
-          Connect your wallet to interact with the AR ecosystem
+          Connect your NEAR wallet to interact with the NeAR ecosystem
         </Text>
       </View>
 
@@ -56,42 +56,42 @@ export default function ThirdwebWalletConnect() {
 
       {/* Features */}
       <View style={styles.featuresSection}>
-        <Text style={styles.featuresTitle}>Supported Features</Text>
+        <Text style={styles.featuresTitle}>NEAR Wallet Features</Text>
         
         <View style={styles.featuresList}>
           <View style={styles.featureItem}>
             <View style={styles.featureDot} />
-            <Text style={styles.featureText}>Multiple wallet options (MetaMask, Coinbase, Rainbow, etc.)</Text>
+            <Text style={styles.featureText}>NEAR Protocol native integration</Text>
           </View>
           
           <View style={styles.featureItem}>
             <View style={styles.featureDot} />
-            <Text style={styles.featureText}>Social login (Google, Discord, Telegram, X)</Text>
+            <Text style={styles.featureText}>USDFC token support for agent interactions</Text>
           </View>
           
           <View style={styles.featureItem}>
             <View style={styles.featureDot} />
-            <Text style={styles.featureText}>Email and phone authentication</Text>
+            <Text style={styles.featureText}>Instant transactions with NEAR Protocol</Text>
           </View>
           
           <View style={styles.featureItem}>
             <View style={styles.featureDot} />
-            <Text style={styles.featureText}>Passkey support for secure access</Text>
+            <Text style={styles.featureText}>Secure NEAR wallet authentication</Text>
           </View>
           
           <View style={styles.featureItem}>
             <View style={styles.featureDot} />
-            <Text style={styles.featureText}>Cross-platform compatibility</Text>
+            <Text style={styles.featureText}>NeAR QR Pay for agent interactions</Text>
           </View>
         </View>
       </View>
 
       {/* Info */}
       <View style={styles.infoSection}>
-        <Text style={styles.infoTitle}>Secure & Easy</Text>
+        <Text style={styles.infoTitle}>NEAR Protocol Integration</Text>
         <Text style={styles.infoText}>
-          Powered by Thirdweb, connecting your wallet is secure and takes just a few clicks. 
-          Choose from multiple authentication methods that work best for you.
+          Powered by NEAR Protocol, connecting your wallet is secure and takes just a few clicks. 
+          Enjoy seamless USDFC payments for NEAR agent interactions in the NeAR world.
         </Text>
       </View>
     </View>
@@ -123,7 +123,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#ede9fe',
+    backgroundColor: 'rgba(0, 236, 151, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -131,12 +131,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#111827',
+    color: '#000000',
     marginBottom: 8,
   },
   headerSubtitle: {
     fontSize: 16,
-    color: '#6b7280',
+    color: '#6B46C1',
     textAlign: 'center',
     lineHeight: 24,
   },
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
   featuresTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#111827',
+    color: '#000000',
     marginBottom: 16,
   },
   featuresList: {
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#9333ea',
+    backgroundColor: '#00EC97',
     marginTop: 6,
   },
   featureText: {
@@ -197,19 +197,19 @@ const styles = StyleSheet.create({
   
   // Info
   infoSection: {
-    backgroundColor: '#ede9fe',
+    backgroundColor: 'rgba(0, 236, 151, 0.2)',
     borderRadius: 16,
     padding: 24,
   },
   infoTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#7c3aed',
+    color: '#00EC97',
     marginBottom: 8,
   },
   infoText: {
     fontSize: 14,
-    color: '#6d28d9',
+    color: '#000000',
     lineHeight: 20,
   },
 });

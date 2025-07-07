@@ -79,10 +79,10 @@ export default function DatabaseStatus({
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <View style={styles.iconContainer}>
-            <Database size={24} color="#00d4ff" strokeWidth={2} />
+            <Database size={24} color="#00EC97" strokeWidth={2} />
           </View>
           <View>
-            <Text style={styles.title}>Database Connection</Text>
+            <Text style={styles.title}>NEAR Agent Database</Text>
             <Text style={[styles.subtitle, { color: getStatusColor() }]}>
               {getStatusText()}
             </Text>
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 8,
-    backgroundColor: '#00d4ff20',
+    backgroundColor: 'rgba(0, 236, 151, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -399,18 +399,18 @@ const styles = StyleSheet.create({
   refreshButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#00d4ff',
+    color: '#00EC97',
   },
   
   // Info
   infoSection: {
-    backgroundColor: '#00d4ff20',
+    backgroundColor: 'rgba(0, 236, 151, 0.2)',
     borderRadius: 8,
     padding: 12,
   },
   infoText: {
     fontSize: 12,
-    color: '#00d4ff',
+    color: '#00EC97',
     lineHeight: 16,
     textAlign: 'center',
   },

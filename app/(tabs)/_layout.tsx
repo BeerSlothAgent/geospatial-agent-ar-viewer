@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Camera, Settings, Info, Database, Wallet, Map } from 'lucide-react-native';
+import { Camera, Settings, Info, Database, Wallet, Map, Coins } from 'lucide-react-native';
 
 export default function TabLayout() {
   return (
@@ -7,14 +7,14 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#1a1a1a',
+          backgroundColor: '#000000',
           borderTopColor: '#333',
           borderTopWidth: 1,
           paddingBottom: 8,
           paddingTop: 8,
           height: 70,
         },
-        tabBarActiveTintColor: '#00d4ff',
+        tabBarActiveTintColor: '#00EC97',
         tabBarInactiveTintColor: '#888',
         tabBarLabelStyle: {
           fontSize: 12,
@@ -25,7 +25,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'AR Viewer',
+          title: 'NeAR Viewer',
           tabBarIcon: ({ size, color }) => (
             <Camera size={size} color={color} strokeWidth={2} />
           ),
@@ -34,7 +34,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="database"
         options={{
-          title: 'Database',
+          title: 'NEAR Agents',
           tabBarIcon: ({ size, color }) => (
             <Database size={size} color={color} strokeWidth={2} />
           ),
@@ -43,7 +43,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="map"
         options={{
-          title: 'Map',
+          title: 'NEAR Map',
           tabBarIcon: ({ size, color }) => (
             <Map size={size} color={color} strokeWidth={2} />
           ),
@@ -52,9 +52,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="wallet"
         options={{
-          title: 'Wallet',
+          title: 'NEAR Wallet',
           tabBarIcon: ({ size, color }) => (
-            <Wallet size={size} color={color} strokeWidth={2} />
+            <Coins size={size} color={color} strokeWidth={2} />
           ),
         }}
       />

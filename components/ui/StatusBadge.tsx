@@ -17,10 +17,10 @@ export default function StatusBadge({
     switch (status) {
       case 'success':
         return {
-          backgroundColor: '#00ff8820',
-          borderColor: '#00ff88',
-          textColor: '#00ff88',
-          icon: <CheckCircle size={16} color="#00ff88" strokeWidth={2} />,
+          backgroundColor: 'rgba(0, 236, 151, 0.2)',
+          borderColor: '#00EC97',
+          textColor: '#00EC97',
+          icon: <CheckCircle size={16} color="#00EC97" strokeWidth={2} />,
         };
       case 'error':
         return {
@@ -31,10 +31,10 @@ export default function StatusBadge({
         };
       case 'pending':
         return {
-          backgroundColor: '#00d4ff20',
-          borderColor: '#00d4ff',
-          textColor: '#00d4ff',
-          icon: <Clock size={16} color="#00d4ff" strokeWidth={2} />,
+          backgroundColor: 'rgba(0, 102, 255, 0.2)',
+          borderColor: '#0066FF',
+          textColor: '#0066FF',
+          icon: <Clock size={16} color="#0066FF" strokeWidth={2} />,
         };
     }
   };
