@@ -203,7 +203,7 @@ export default function DatabaseScreen() {
             Configuration: {isSupabaseConfigured ? 'Valid ✅' : 'Missing ❌'}
           </Text>
           <Text style={styles.statusDetail}>
-            Total Objects: {connectionStatus.totalObjects}
+            Total Objects: {connectionStatus.totalObjects.toString()}
           </Text>
           {connectionStatus.lastQuery && (
             <Text style={styles.statusDetail}>
@@ -276,8 +276,8 @@ export default function DatabaseScreen() {
           <Text style={styles.debugText}>• Supabase URL: {isSupabaseConfigured ? 'Configured ✅' : 'Missing ❌'}</Text>
           <Text style={styles.debugText}>• Database Client: {supabase ? 'Initialized ✅' : 'Not Initialized ❌'}</Text>
           <Text style={styles.debugText}>• Migration Applied: Clean migration without constraints ✅</Text>
-          <Text style={styles.debugText}>• Objects Retrieved: {objects.length} ✅</Text>
-          <Text style={styles.debugText}>• Active Objects: {objects.filter(obj => obj.is_active).length} ✅</Text>
+          <Text style={styles.debugText}>• Objects Retrieved: {objects.length.toString()} ✅</Text>
+          <Text style={styles.debugText}>• Active Objects: {objects.filter(obj => obj.is_active).length.toString()} ✅</Text>
           <Text style={styles.debugText}>• Ready for AR: Your database is working perfectly! 🚀</Text>
         </View>
       )}
@@ -331,7 +331,7 @@ function ObjectItem({ object }: { object: DeployedObject }) {
         </View>
         {object.altitude !== 0 && (
           <Text style={styles.altitudeText}>
-            Altitude: {object.altitude?.toFixed(1)}m
+            Altitude: {object.altitude?.toFixed(1) || '0'}m
           </Text>
         )}
       </View>
@@ -350,7 +350,7 @@ function ObjectItem({ object }: { object: DeployedObject }) {
         </View>
         <View style={styles.propertyRow}>
           <Text style={styles.propertyLabel}>Visibility:</Text>
-          <Text style={styles.propertyValue}>{object.visibility_radius}m</Text>
+          <Text style={styles.propertyValue}>{object.visibility_radius?.toString() || '0'}m</Text>
         </View>
       </View>
 
