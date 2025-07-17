@@ -8,8 +8,9 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import { Camera, X, Zap, MapPin, MessageCircle } from 'lucide-react-native';
+import { Camera, X, Zap, MapPin, MessageCircle, Play } from 'lucide-react-native';
 import { DeployedObject } from '@/types/database';
+import { LocationData } from '@/hooks/useLocation';
 import AgentInteractionModal from '@/components/ar/AgentInteractionModal';
 import { ARQRCodeGenerator } from '@/components/ar/ARQRCodeGenerator';
 
@@ -20,11 +21,7 @@ interface ARCameraViewProps {
   onCameraReady?: () => void;
   onError?: (error: string) => void;
   objects: DeployedObject[];
-  userLocation?: {
-    latitude: number;
-    longitude: number;
-    altitude?: number;
-  } | null;
+  userLocation?: LocationData | null;
 }
 
 export default function ARCameraView({
@@ -37,6 +34,7 @@ export default function ARCameraView({
   const [cameraReady, setCameraReady] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<DeployedObject | null>(null);
   const [showInteractionModal, setShowInteractionModal] = useState(false);
+  const [showFullARView, setShowFullARView] = useState(false);
   const qrCodeGeneratorRef = useRef<ARQRCodeGenerator | null>(null);
 
   useEffect(() => {
@@ -128,49 +126,135 @@ export default function ARCameraView({
     );
   };
 
+  // Render the camera view with AR overlay
+  if (!showFullARView) {
+    return (
+      <View style={styles.container}>
+        {/* Camera Background Simulation */}
+        <View style={styles.cameraBackground}>
+          <View style={styles.cameraOverlay}>
+            {!cameraReady ? (
+              <View style={styles.loadingContainer}>
+                <Camera size={48} color="#00EC97" strokeWidth={2} />
+                <Text style={styles.loadingText}>Initializing NEAR Agent AR...</Text>
+              </View>
+            ) : (
+              <>
+                {/* AR Agents */}
+                {objects.map((agent, index) => renderARAgent(agent, index))}
+                
+                {/* AR UI Elements */}
+                <View style={styles.arUI}>
+                  <View style={styles.statusBar}>
+                    <View style={styles.statusItem}>
+                      <MapPin size={16} color="#00EC97" strokeWidth={2} />
+                      <Text style={styles.statusText}>
+                        {objects.length} NEAR Agents Detected
+                      </Text>
+                    </View>
+                    
+                    {userLocation && (
+                      <View style={styles.statusItem}>
+                        <Zap size={16} color="#00EC97" strokeWidth={2} />
+                        <Text style={styles.statusText}>RTK Precision Active</Text>
+                      </View>
+                    )}
+                  </View>
+                  
+                  <View style={styles.instructions}>
+                    <Text style={styles.instructionText}>
+                      Tap on NEAR agents to interact
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Full AR View Button */}
+                <TouchableOpacity
+                  style={styles.fullARButton}
+                  onPress={() => setShowFullARView(true)}
+                >
+                  <Play size={20} color="#000" strokeWidth={2} />
+                  <Text style={styles.fullARButtonText}>Enter Agent World</Text>
+                  <Text style={styles.poweredByText}>Powered by NEAR</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+
+        {/* Close Button */}
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={onClose}
+          activeOpacity={0.8}
+        >
+          <X size={24} color="#fff" strokeWidth={2} />
+        </TouchableOpacity>
+
+        {/* Agent Interaction Modal */}
+        {selectedAgent && qrCodeGeneratorRef.current && (
+          <AgentInteractionModal
+            agent={selectedAgent}
+            visible={showInteractionModal}
+            onClose={handleCloseInteractionModal}
+            userLocation={userLocation}
+            arQRCodeGenerator={qrCodeGeneratorRef.current}
+          />
+        )}
+      </View>
+    );
+  }
+  
+  // Full AR View (the view that was previously shown)
   return (
     <View style={styles.container}>
-      {/* Camera Background Simulation */}
-      <View style={styles.cameraBackground}>
-        <View style={styles.cameraOverlay}>
+      {/* Full AR View Background */}
+      <View style={styles.fullARBackground}>
+        <View style={styles.fullAROverlay}>
           {!cameraReady ? (
             <View style={styles.loadingContainer}>
               <Camera size={48} color="#00EC97" strokeWidth={2} />
-              <Text style={styles.loadingText}>Initializing NEAR Agent AR...</Text>
+              <Text style={styles.loadingText}>Initializing Full AR Experience...</Text>
             </View>
           ) : (
             <>
-              {/* AR Agents */}
-              {objects.map((agent, index) => renderARAgent(agent, index))}
-              
-              {/* AR UI Elements */}
-              <View style={styles.arUI}>
-                <View style={styles.statusBar}>
-                  <View style={styles.statusItem}>
-                    <MapPin size={16} color="#00EC97" strokeWidth={2} />
-                    <Text style={styles.statusText}>
-                      {objects.length} NEAR Agents Detected
-                    </Text>
-                  </View>
-                  
-                  {userLocation && (
-                    <View style={styles.statusItem}>
-                      <Zap size={16} color="#00EC97" strokeWidth={2} />
-                      <Text style={styles.statusText}>RTK Precision Active</Text>
-                    </View>
-                  )}
-                </View>
+              {/* Full AR Content */}
+              <View style={styles.fullARContent}>
+                <Text style={styles.fullARTitle}>Full AR Experience</Text>
+                <Text style={styles.fullARDescription}>
+                  This is the full AR experience with advanced features.
+                </Text>
                 
-                <View style={styles.instructions}>
-                  <Text style={styles.instructionText}>
-                    Tap on NEAR agents to interact
-                  </Text>
+                {/* Display agents in a different layout for full AR */}
+                <View style={styles.fullARAgents}>
+                  {objects.map((agent, index) => {
+                    const distance = calculateDistance(agent);
+                    return (
+                      <TouchableOpacity
+                        key={agent.id}
+                        style={styles.fullARAgent}
+                        onPress={() => handleAgentSelect(agent)}
+                      >
+                        <Text style={styles.fullARAgentName}>{agent.name || 'NEAR Agent'}</Text>
+                        <Text style={styles.fullARAgentDistance}>{distance.toFixed(0)}m</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </View>
             </>
           )}
         </View>
       </View>
+
+      {/* Back Button */}
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => setShowFullARView(false)}
+        activeOpacity={0.8}
+      >
+        <X size={24} color="#fff" strokeWidth={2} />
+      </TouchableOpacity>
 
       {/* Close Button */}
       <TouchableOpacity
@@ -324,5 +408,94 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#333',
     zIndex: 1000,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#333',
+    zIndex: 1000,
+  },
+  fullARButton: {
+    position: 'absolute',
+    bottom: 50,
+    left: 20,
+    right: 20,
+    backgroundColor: '#00EC97',
+    paddingVertical: 16,
+    borderRadius: 12,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  fullARButtonText: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  poweredByText: {
+    position: 'absolute',
+    bottom: -20,
+    right: 10,
+    color: '#00EC97',
+    fontSize: 10,
+  },
+  fullARBackground: {
+    flex: 1,
+    backgroundColor: '#0a0a0a',
+  },
+  fullAROverlay: {
+    flex: 1,
+  },
+  fullARContent: {
+    flex: 1,
+    padding: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullARTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 10,
+  },
+  fullARDescription: {
+    fontSize: 16,
+    color: '#aaa',
+    textAlign: 'center',
+    marginBottom: 30,
+  },
+  fullARAgents: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  fullARAgent: {
+    backgroundColor: 'rgba(0, 236, 151, 0.2)',
+    borderRadius: 12,
+    padding: 15,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#00EC97',
+    width: 150,
+  },
+  fullARAgentName: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 5,
+  },
+  fullARAgentDistance: {
+    color: '#00EC97',
+    fontSize: 12,
   },
 });
