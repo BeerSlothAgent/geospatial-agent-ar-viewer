@@ -1,13 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { createThirdwebClient } from "thirdweb";
 import { ConnectButton } from "thirdweb/react";
 import { inAppWallet, createWallet } from "thirdweb/wallets";
 import { Wallet, Coins } from 'lucide-react-native';
 
-const client = createThirdwebClient({
-});
-
+// Define wallets outside component to prevent recreation on every render
 const wallets = [
   inAppWallet({
     auth: {
@@ -47,7 +44,6 @@ export default function ThirdwebWalletConnect() {
       {/* Thirdweb Connect Button */}
       <View style={styles.connectSection}>
         <ConnectButton
-          client={client}
           connectModal={{ size: "compact" }}
           wallets={wallets}
         />
