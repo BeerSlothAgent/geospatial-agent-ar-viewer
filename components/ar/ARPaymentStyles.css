@@ -1,0 +1,235 @@
+/* AR Payment Styles */
+
+/* QR Code Container */
+#ar-qr-code-container {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.9);
+  padding: 30px;
+  border-radius: 20px;
+  z-index: 10000;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  border: 2px solid #00EC97;
+  text-align: center;
+  max-width: 350px;
+}
+
+#ar-qr-code {
+  margin: 20px 0;
+}
+
+#ar-qr-code img {
+  display: block;
+  margin: 0 auto;
+  border: 8px solid white;
+  border-radius: 8px;
+}
+
+/* Payment Modal */
+.ar-payment-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.ar-payment-container {
+  background-color: #1a1a2e;
+  border-radius: 20px;
+  padding: 30px;
+  width: 90%;
+  max-width: 500px;
+  border: 2px solid #00EC97;
+}
+
+.ar-payment-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.ar-payment-title {
+  font-size: 24px;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 10px;
+}
+
+.ar-payment-subtitle {
+  font-size: 16px;
+  color: #aaa;
+}
+
+.ar-payment-amount {
+  font-size: 36px;
+  font-weight: bold;
+  color: #00EC97;
+  text-align: center;
+  margin: 20px 0;
+}
+
+.ar-payment-methods {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.ar-payment-method {
+  display: flex;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.05);
+  padding: 15px;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 1px solid rgba(0, 236, 151, 0.3);
+}
+
+.ar-payment-method:hover {
+  background-color: rgba(0, 236, 151, 0.1);
+}
+
+.ar-payment-method-icon {
+  width: 40px;
+  height: 40px;
+  background-color: rgba(0, 236, 151, 0.1);
+  border-radius: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-right: 15px;
+}
+
+.ar-payment-method-details {
+  flex: 1;
+}
+
+.ar-payment-method-name {
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 5px;
+}
+
+.ar-payment-method-description {
+  font-size: 14px;
+  color: #aaa;
+}
+
+.ar-payment-footer {
+  text-align: center;
+  margin-top: 20px;
+  color: #aaa;
+  font-size: 14px;
+}
+
+/* Payment Status */
+.ar-payment-status {
+  text-align: center;
+  padding: 15px;
+  border-radius: 10px;
+  margin: 20px 0;
+}
+
+.ar-payment-status-pending {
+  background-color: rgba(245, 158, 11, 0.1);
+  border: 1px solid #F59E0B;
+}
+
+.ar-payment-status-success {
+  background-color: rgba(0, 236, 151, 0.1);
+  border: 1px solid #00EC97;
+}
+
+.ar-payment-status-failed {
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid #EF4444;
+}
+
+.ar-payment-status-text {
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+}
+
+/* Buttons */
+.ar-payment-button {
+  background-color: #00EC97;
+  color: black;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.ar-payment-button:hover {
+  background-color: #00d489;
+}
+
+.ar-payment-button-secondary {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.ar-payment-button-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Wallet Info */
+.ar-wallet-info {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.ar-wallet-address {
+  font-family: monospace;
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 10px;
+  border-radius: 5px;
+  color: #00EC97;
+  margin: 10px 0;
+  word-break: break-all;
+}
+
+.ar-wallet-balance {
+  font-size: 14px;
+  color: white;
+}
+
+/* Loading Animation */
+.ar-loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #00EC97;
+  animation: ar-spin 1s ease-in-out infinite;
+  margin-right: 10px;
+}
+
+@keyframes ar-spin {
+  to { transform: rotate(360deg); }
+}

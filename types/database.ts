@@ -26,6 +26,7 @@ export interface DeployedObject {
   updated_at?: string;
   distance_meters?: number;
   interaction_fee_usdfc?: number;
+  interaction_fee_usdfc?: number;
   agent_wallet_address?: string;
   agent_wallet_type?: string;
 }
@@ -35,4 +36,17 @@ export interface DatabaseStats {
   activeObjects: number;
   correctedObjects: number;
   averageAccuracy: number;
+}
+
+export interface NearbyObjectsQuery {
+  latitude: number;
+  longitude: number;
+  radius_meters?: number;
+  limit?: number;
+}
+
+export interface DatabaseError {
+  code: string;
+  message: string;
+  details?: any;
 }
