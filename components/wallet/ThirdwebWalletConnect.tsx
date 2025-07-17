@@ -5,7 +5,7 @@ import { ConnectButton } from "thirdweb/react";
 import { inAppWallet, createWallet } from "thirdweb/wallets";
 import { Wallet, Coins } from 'lucide-react-native';
 
-  clientId: "299516306b51bd6356fd8995ed628950",
+const client = createThirdwebClient({
   clientId: "299516306b51bd6356fd8995ed628950",
 });
 
